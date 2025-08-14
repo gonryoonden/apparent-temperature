@@ -2,14 +2,28 @@ const { perceivedTemp, levelByPT } = require('../lib/pt');
 const nxnyMap = require('../lib/nxny_map.json');
 
 function findNxNy(region) {
-  if (!region) return nxnyMap["대전광역시"]; // 기본값
-  // 완전일치 우선
+  if (!region) return nxnyMap["대전광역시"]; // fallback
+
+  // 1. 완전일치 우선
   if (nxnyMap[region]) return nxnyMap[region];
-  // 부분일치(공백/대소문자 무시)
-  const keys = Object.keys(nxnyMap);
-  const cleaned = region.replace(/\s/g,'').toLowerCase();
-  const hit = keys.find(key => key.replace(/\s/g,'').toLowerCase().includes(cleaned));
+
+  // 2. 대소문자/공백제거 후 부분 포함(가장 긴 key부터)
+  const cleaned = region.replace(/\s/g, '').toLowerCase();
+  const keys = Object.keys(nxnyMap).sort((a, b) => b.length - a.length);
+  const hit = keys.find(key => key.replace(/\s/g, '').toLowerCase().includes(cleaned));
   if (hit) return nxnyMap[hit];
+
+  // 3. 단어분리 후 모든 단어가 key에 포함될 경우
+  const regionWords = cleaned.match(/[가-힣]+/g) || [];
+  const altHit = keys.find(key =>
+    regionWords.every(word => key.replace(/\s/g, '').includes(word))
+  );
+  if (altHit) return nxnyMap[altHit];
+
+  // 4. (권장) 동명 행정동 다중 후보시 첫번째 반환 + 후보 리스트도 같이 안내
+  const multiHits = keys.filter(key => key.replace(/\s/g, '').toLowerCase().endsWith(cleaned));
+  if (multiHits.length > 0) return nxnyMap[multiHits[0]];
+
   return null;
 }
 
