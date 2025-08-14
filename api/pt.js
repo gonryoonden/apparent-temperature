@@ -7,8 +7,9 @@ const CITY_PRESET = {
 };
 const BASE_HOURS = [2,5,8,11,14,17,20,23];
 
-function chooseBase(dateISO, startHour){
-  const h = Number(startHour);
+function chooseBase(dateISO, targetHour){
+  // targetHour(정수)에서, 바로 이전 또는 같은 발표시각 찾기
+  const h = Number(targetHour);
   let baseHour = BASE_HOURS.slice().reverse().find(b => b <= h) ?? 23;
   let d = new Date(dateISO + "T00:00:00+09:00");
   if (h < 2) d.setDate(d.getDate()-1);
