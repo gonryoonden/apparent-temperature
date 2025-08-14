@@ -1,15 +1,22 @@
 const { perceivedTemp, levelByPT } = require('../lib/pt');
-const { latlonToGrid } = require('../lib/kmaGrid');
+const nxnyMap = require('../lib/nxny_map.json');
 
-const CITY_PRESET = {
-  "대전": { lat: 36.3504, lon: 127.3845 },
-  "daejeon": { lat: 36.3504, lon: 127.3845 }
-};
+function findNxNy(region) {
+  if (!region) return nxnyMap["대전광역시"]; // 기본값
+  // 완전일치 우선
+  if (nxnyMap[region]) return nxnyMap[region];
+  // 부분일치(공백/대소문자 무시)
+  const keys = Object.keys(nxnyMap);
+  const cleaned = region.replace(/\s/g,'').toLowerCase();
+  const hit = keys.find(key => key.replace(/\s/g,'').toLowerCase().includes(cleaned));
+  if (hit) return nxnyMap[hit];
+  return null;
+}
+
 const BASE_HOURS = [2,5,8,11,14,17,20,23];
 
-function chooseBase(dateISO, targetHour){
-  // targetHour(정수)에서, 바로 이전 또는 같은 발표시각 찾기
-  const h = Number(targetHour);
+function chooseBase(dateISO, startHour){
+  const h = Number(startHour);
   let baseHour = BASE_HOURS.slice().reverse().find(b => b <= h) ?? 23;
   let d = new Date(dateISO + "T00:00:00+09:00");
   if (h < 2) d.setDate(d.getDate()-1);
@@ -20,7 +27,7 @@ const parseHour = h => String(h).padStart(2,'0')+"00";
 
 module.exports = async (req, res) => {
   try {
-    const { place="대전", date, startHour="9", endHour="13", mode, threshold } = req.query;
+    const { place="대전광역시", date, startHour="9", endHour="13", mode, threshold } = req.query;
     const targetDate = (date || new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }));
     const startH = Number(startHour), endH = Number(endHour);
 
@@ -30,16 +37,14 @@ module.exports = async (req, res) => {
       return res.status(500).json({ error: "KMA_SERVICE_KEY environment variable is not set" });
     }
 
-    // 2. 위치→격자
-    let lat, lon;
-    if (place.includes(",")) [lat,lon] = place.split(",").map(Number);
-    else if (CITY_PRESET[place?.toLowerCase?.()] || CITY_PRESET[place]) {
-      const p = CITY_PRESET[place?.toLowerCase?.()] || CITY_PRESET[place];
-      lat=p.lat; lon=p.lon;
-    } else { ({lat,lon} = CITY_PRESET["대전"]); }
-    const { nx, ny } = latlonToGrid(lat, lon);
+    // 2. 지역명→격자(nx, ny)
+    const nxny = findNxNy(place);
+    if (!nxny) {
+      return res.status(400).json({ error: `입력하신 지역명을 찾을 수 없습니다: ${place}` });
+    }
+    const { nx, ny } = nxny;
 
-    // 3. 기상청 API 호출 URL 생성(이중 인코딩 금지)
+    // 3. 기상청 API 호출 URL 생성
     const { base_date, base_time } = chooseBase(targetDate, startH);
     const qs = new URLSearchParams({
       pageNo: "1",
@@ -69,7 +74,6 @@ module.exports = async (req, res) => {
     try {
       json = JSON.parse(responseText);
     } catch (parseError) {
-      // KMA에서 XML 등으로 에러 메시지 줄 경우
       return res.status(500).json({ 
         error: "Invalid JSON response from KMA API",
         responsePreview: responseText.substring(0, 500),
