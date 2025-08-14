@@ -23,6 +23,12 @@ module.exports = async (req, res) => {
     const targetDate = (date || new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }));
     const startH = Number(startHour), endH = Number(endHour);
 
+    // API 키 확인
+    const serviceKey = process.env.KMA_SERVICE_KEY;
+    if (!serviceKey) {
+      return res.status(500).json({ error: "KMA_SERVICE_KEY environment variable is not set" });
+    }
+
     // 위치→격자
     let lat, lon;
     if (place.includes(",")) [lat,lon] = place.split(",").map(Number);
@@ -34,7 +40,7 @@ module.exports = async (req, res) => {
 
     // 기상청 호출
     const { base_date, base_time } = chooseBase(targetDate, startH);
-    const k = encodeURIComponent(process.env.KMA_SERVICE_KEY); // Vercel env
+    const k = encodeURIComponent(serviceKey);
     const url = new URL("http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst");
     url.searchParams.set("serviceKey", k);
     url.searchParams.set("pageNo","1");
@@ -44,15 +50,63 @@ module.exports = async (req, res) => {
     url.searchParams.set("base_time", base_time);
     url.searchParams.set("nx", String(nx));
     url.searchParams.set("ny", String(ny));
+
+    console.log("Requesting KMA API:", url.toString());
+    
     const r = await fetch(url.toString());
-    if (!r.ok) throw new Error("KMA response not OK");
-    const json = await r.json();
+    
+    // 응답 상태 확인
+    if (!r.ok) {
+      console.error("KMA API HTTP error:", r.status, r.statusText);
+      return res.status(500).json({ 
+        error: `KMA API HTTP error: ${r.status} ${r.statusText}`,
+        url: url.toString().replace(serviceKey, "***HIDDEN***")
+      });
+    }
+
+    // 응답 텍스트 먼저 확인
+    const responseText = await r.text();
+    console.log("KMA API response (first 200 chars):", responseText.substring(0, 200));
+    
+    let json;
+    try {
+      json = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError);
+      console.error("Response text:", responseText);
+      return res.status(500).json({ 
+        error: "Invalid JSON response from KMA API",
+        responsePreview: responseText.substring(0, 500)
+      });
+    }
+
+    // API 응답 구조 확인
+    if (!json.response) {
+      console.error("Unexpected response structure:", json);
+      return res.status(500).json({ 
+        error: "Unexpected response structure from KMA API",
+        response: json 
+      });
+    }
+
+    // 기상청 API 오류 확인
+    const header = json.response.header;
+    if (header.resultCode !== "00") {
+      console.error("KMA API error:", header);
+      return res.status(500).json({ 
+        error: `KMA API error: ${header.resultCode} - ${header.resultMsg}`,
+        header: header
+      });
+    }
+
     const items = json?.response?.body?.items?.item || [];
+    console.log("Retrieved items count:", items.length);
 
     // 필터링
     const wantDate = targetDate.replaceAll("-","");
     const hoursWanted = new Set(Array.from({length:(endH-startH+1)}, (_,i)=>parseHour(startH+i)));
     const rowsMap = {};
+    
     for (const it of items){
       if (it.fcstDate !== wantDate) continue;
       if (!hoursWanted.has(it.fcstTime)) continue;
@@ -60,6 +114,8 @@ module.exports = async (req, res) => {
       if (it.category === "TMP") rowsMap[it.fcstTime].Ta = parseFloat(it.fcstValue);
       if (it.category === "REH") rowsMap[it.fcstTime].RH = parseFloat(it.fcstValue);
     }
+
+    console.log("Filtered data:", rowsMap);
 
     // 계산
     const th = threshold ? Number(threshold) : null;
@@ -81,10 +137,39 @@ module.exports = async (req, res) => {
         if (r.PT==null) return `${r.time} 자료가 부족합니다.`;
         return `${r.time} ${place}의 온도는 ${r.Ta}℃, 습도 ${r.RH}%로 체감온도는 ${r.PT}℃입니다${r.alert?` [${r.alert}]`:``}.`;
       });
-      return res.status(200).json({ place, date: targetDate, nx, ny, base_date, base_time, lines });
+      return res.status(200).json({ 
+        place, 
+        date: targetDate, 
+        nx, 
+        ny, 
+        base_date, 
+        base_time, 
+        lines,
+        debug: {
+          requestUrl: url.toString().replace(serviceKey, "***HIDDEN***"),
+          itemsCount: items.length,
+          filteredData: Object.keys(rowsMap).length
+        }
+      });
     }
-    res.status(200).json({ place, date: targetDate, nx, ny, base_date, base_time, rows });
+    
+    res.status(200).json({ 
+      place, 
+      date: targetDate, 
+      nx, 
+      ny, 
+      base_date, 
+      base_time, 
+      rows,
+      debug: {
+        requestUrl: url.toString().replace(serviceKey, "***HIDDEN***"),
+        itemsCount: items.length,
+        filteredData: Object.keys(rowsMap).length
+      }
+    });
+    
   } catch (e){
-    res.status(500).json({ error: String(e) });
+    console.error("Unexpected error:", e);
+    res.status(500).json({ error: String(e), stack: e.stack });
   }
 };
