@@ -18,18 +18,18 @@ function chooseBase(dateISO, startHour){
 const parseHour = h => String(h).padStart(2,'0')+"00";
 
 module.exports = async (req, res) => {
-  try{
+  try {
     const { place="대전", date, startHour="9", endHour="13", mode, threshold } = req.query;
     const targetDate = (date || new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }));
     const startH = Number(startHour), endH = Number(endHour);
 
-    // API 키 확인
+    // 1. API 키
     const serviceKey = process.env.KMA_SERVICE_KEY;
     if (!serviceKey) {
       return res.status(500).json({ error: "KMA_SERVICE_KEY environment variable is not set" });
     }
 
-    // 위치→격자
+    // 2. 위치→격자
     let lat, lon;
     if (place.includes(",")) [lat,lon] = place.split(",").map(Number);
     else if (CITY_PRESET[place?.toLowerCase?.()] || CITY_PRESET[place]) {
@@ -38,74 +38,67 @@ module.exports = async (req, res) => {
     } else { ({lat,lon} = CITY_PRESET["대전"]); }
     const { nx, ny } = latlonToGrid(lat, lon);
 
-    // 기상청 호출
+    // 3. 기상청 API 호출 URL 생성(이중 인코딩 금지)
     const { base_date, base_time } = chooseBase(targetDate, startH);
-    url.searchParams.set("serviceKey", serviceKey);
-    url.searchParams.set("serviceKey", k);
-    url.searchParams.set("pageNo","1");
-    url.searchParams.set("numOfRows","2000");
-    url.searchParams.set("dataType","JSON");
-    url.searchParams.set("base_date", base_date);
-    url.searchParams.set("base_time", base_time);
-    url.searchParams.set("nx", String(nx));
-    url.searchParams.set("ny", String(ny));
+    const qs = new URLSearchParams({
+      pageNo: "1",
+      numOfRows: "2000",
+      dataType: "JSON",
+      base_date,
+      base_time,
+      nx: String(nx),
+      ny: String(ny)
+    }).toString();
+    const url = `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=${serviceKey}&${qs}`;
 
-    console.log("Requesting KMA API:", url.toString());
-    
-    const r = await fetch(url.toString());
-    
-    // 응답 상태 확인
+    // 4. fetch
+    const r = await fetch(url);
     if (!r.ok) {
-      console.error("KMA API HTTP error:", r.status, r.statusText);
+      const text = await r.text();
       return res.status(500).json({ 
         error: `KMA API HTTP error: ${r.status} ${r.statusText}`,
-        url: url.toString().replace(serviceKey, "***HIDDEN***")
+        responsePreview: text.substring(0, 400),
+        url: url.replace(serviceKey, "***HIDDEN***")
       });
     }
-
-    // 응답 텍스트 먼저 확인
     const responseText = await r.text();
-    console.log("KMA API response (first 200 chars):", responseText.substring(0, 200));
-    
+
+    // 5. 응답이 JSON이 아닐 수도 있으니 미리 확인
     let json;
     try {
       json = JSON.parse(responseText);
     } catch (parseError) {
-      console.error("JSON parse error:", parseError);
-      console.error("Response text:", responseText);
+      // KMA에서 XML 등으로 에러 메시지 줄 경우
       return res.status(500).json({ 
         error: "Invalid JSON response from KMA API",
-        responsePreview: responseText.substring(0, 500)
+        responsePreview: responseText.substring(0, 500),
+        url: url.replace(serviceKey, "***HIDDEN***")
       });
     }
 
-    // API 응답 구조 확인
+    // 6. API 응답 구조 및 에러 코드 확인
     if (!json.response) {
-      console.error("Unexpected response structure:", json);
       return res.status(500).json({ 
         error: "Unexpected response structure from KMA API",
-        response: json 
+        response: json,
+        url: url.replace(serviceKey, "***HIDDEN***")
       });
     }
-
-    // 기상청 API 오류 확인
     const header = json.response.header;
     if (header.resultCode !== "00") {
-      console.error("KMA API error:", header);
       return res.status(500).json({ 
         error: `KMA API error: ${header.resultCode} - ${header.resultMsg}`,
-        header: header
+        header: header,
+        url: url.replace(serviceKey, "***HIDDEN***")
       });
     }
 
     const items = json?.response?.body?.items?.item || [];
-    console.log("Retrieved items count:", items.length);
 
-    // 필터링
+    // 7. 시간대 필터링 및 TMP/REH 추출
     const wantDate = targetDate.replaceAll("-","");
     const hoursWanted = new Set(Array.from({length:(endH-startH+1)}, (_,i)=>parseHour(startH+i)));
     const rowsMap = {};
-    
     for (const it of items){
       if (it.fcstDate !== wantDate) continue;
       if (!hoursWanted.has(it.fcstTime)) continue;
@@ -114,9 +107,7 @@ module.exports = async (req, res) => {
       if (it.category === "REH") rowsMap[it.fcstTime].RH = parseFloat(it.fcstValue);
     }
 
-    console.log("Filtered data:", rowsMap);
-
-    // 계산
+    // 8. 체감온도 계산
     const th = threshold ? Number(threshold) : null;
     const times = Array.from(hoursWanted).sort();
     const rows = [];
@@ -131,6 +122,7 @@ module.exports = async (req, res) => {
       }
     }
 
+    // 9. phrase 모드(문장) 지원
     if (mode === "phrase"){
       const lines = rows.map(r=>{
         if (r.PT==null) return `${r.time} 자료가 부족합니다.`;
@@ -143,15 +135,11 @@ module.exports = async (req, res) => {
         ny, 
         base_date, 
         base_time, 
-        lines,
-        debug: {
-          requestUrl: url.toString().replace(serviceKey, "***HIDDEN***"),
-          itemsCount: items.length,
-          filteredData: Object.keys(rowsMap).length
-        }
+        lines
       });
     }
     
+    // 10. JSON 기본 응답
     res.status(200).json({ 
       place, 
       date: targetDate, 
@@ -159,16 +147,9 @@ module.exports = async (req, res) => {
       ny, 
       base_date, 
       base_time, 
-      rows,
-      debug: {
-        requestUrl: url.toString().replace(serviceKey, "***HIDDEN***"),
-        itemsCount: items.length,
-        filteredData: Object.keys(rowsMap).length
-      }
+      rows
     });
-    
   } catch (e){
-    console.error("Unexpected error:", e);
     res.status(500).json({ error: String(e), stack: e.stack });
   }
 };
