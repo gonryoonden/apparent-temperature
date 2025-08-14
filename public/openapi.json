@@ -1,0 +1,27 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "KMA PT API", "version": "1.0.0" },
+  "servers": [{ "url": "https://<REPLACE-WITH-YOUR-VERCEL-URL>" }],
+  "paths": {
+    "/api/pt": {
+      "get": {
+        "operationId": "getPerceivedTemp",
+        "summary": "시간대 체감온도 조회(문장 출력 모드 지원)",
+        "parameters": [
+          { "name": "place", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "date", "in": "query", "required": false, "schema": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" } },
+          { "name": "startHour", "in": "query", "required": true, "schema": { "type": "integer", "minimum": 0, "maximum": 23 } },
+          { "name": "endHour", "in": "query", "required": true, "schema": { "type": "integer", "minimum": 0, "maximum": 23 } },
+          { "name": "threshold", "in": "query", "required": false, "schema": { "type": "number" } },
+          { "name": "mode", "in": "query", "required": false, "schema": { "type": "string", "enum": ["json","phrase"] } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "type": "object" } } }
+          }
+        }
+      }
+    }
+  }
+}

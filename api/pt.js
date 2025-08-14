@@ -1,4 +1,3 @@
-// api/pt.js
 const { perceivedTemp, levelByPT } = require('../lib/pt');
 const { latlonToGrid } = require('../lib/kmaGrid');
 
@@ -6,67 +5,54 @@ const CITY_PRESET = {
   "대전": { lat: 36.3504, lon: 127.3845 },
   "daejeon": { lat: 36.3504, lon: 127.3845 }
 };
-
-const BASE_HOURS = [2,5,8,11,14,17,20,23]; // 기상청 단기예보 발표시각(정시)
+const BASE_HOURS = [2,5,8,11,14,17,20,23];
 
 function chooseBase(dateISO, startHour){
-  // startHour보다 바로 이전(또는 같은) 발표시각 선택. 00~01시는 전날 23시로 롤백.
   const h = Number(startHour);
   let baseHour = BASE_HOURS.slice().reverse().find(b => b <= h) ?? 23;
-  let d = new Date(dateISO + "T00:00:00+09:00"); // KST 기준
-  if (h < 2) d.setDate(d.getDate()-1); // 0~1시는 전날 23시 예보 사용 가능성
-  const y = d.getFullYear();
-  const m = String(d.getMonth()+1).padStart(2,'0');
-  const day = String(d.getDate()).padStart(2,'0');
-  return {
-    base_date: `${y}${m}${day}`,
-    base_time: String(baseHour).padStart(2,'0') + "00"
-  };
+  let d = new Date(dateISO + "T00:00:00+09:00");
+  if (h < 2) d.setDate(d.getDate()-1);
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return { base_date: `${y}${m}${day}`, base_time: String(baseHour).padStart(2,'0')+"00" };
 }
+const parseHour = h => String(h).padStart(2,'0')+"00";
 
-function parseHour(h){ return String(h).padStart(2,'0')+"00"; }
-
-async function handler(req, res){
+module.exports = async (req, res) => {
   try{
     const { place="대전", date, startHour="9", endHour="13", mode, threshold } = req.query;
-    const targetDate = (date || new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' })); // YYYY-MM-DD
+    const targetDate = (date || new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }));
     const startH = Number(startHour), endH = Number(endHour);
 
-    // 1) 위치→격자
+    // 위치→격자
     let lat, lon;
-    if (place.includes(",")) { // "lat,lon"
-      [lat,lon] = place.split(",").map(Number);
-    } else if (CITY_PRESET[place.toLowerCase?.()] || CITY_PRESET[place]){
-      const p = CITY_PRESET[place.toLowerCase?.()] || CITY_PRESET[place];
+    if (place.includes(",")) [lat,lon] = place.split(",").map(Number);
+    else if (CITY_PRESET[place?.toLowerCase?.()] || CITY_PRESET[place]) {
+      const p = CITY_PRESET[place?.toLowerCase?.()] || CITY_PRESET[place];
       lat=p.lat; lon=p.lon;
-    } else {
-      // 간단화: 기본 대전
-      ({ lat, lon } = CITY_PRESET["대전"]);
-    }
+    } else { ({lat,lon} = CITY_PRESET["대전"]); }
     const { nx, ny } = latlonToGrid(lat, lon);
 
-    // 2) 기상청 호출 파라미터
+    // 기상청 호출
     const { base_date, base_time } = chooseBase(targetDate, startH);
-    const k = encodeURIComponent(process.env.KMA_SERVICE_KEY);
+    const k = encodeURIComponent(process.env.KMA_SERVICE_KEY); // Vercel env
     const url = new URL("http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst");
     url.searchParams.set("serviceKey", k);
-    url.searchParams.set("pageNo", "1");
-    url.searchParams.set("numOfRows", "2000");
-    url.searchParams.set("dataType", "JSON");
+    url.searchParams.set("pageNo","1");
+    url.searchParams.set("numOfRows","2000");
+    url.searchParams.set("dataType","JSON");
     url.searchParams.set("base_date", base_date);
     url.searchParams.set("base_time", base_time);
     url.searchParams.set("nx", String(nx));
     url.searchParams.set("ny", String(ny));
-
     const r = await fetch(url.toString());
     if (!r.ok) throw new Error("KMA response not OK");
     const json = await r.json();
     const items = json?.response?.body?.items?.item || [];
 
-    // 3) 시간대 필터링 및 TMP/REH 매핑
+    // 필터링
     const wantDate = targetDate.replaceAll("-","");
     const hoursWanted = new Set(Array.from({length:(endH-startH+1)}, (_,i)=>parseHour(startH+i)));
-    const rowsMap = {}; // fcstTime -> {Ta, RH}
+    const rowsMap = {};
     for (const it of items){
       if (it.fcstDate !== wantDate) continue;
       if (!hoursWanted.has(it.fcstTime)) continue;
@@ -75,7 +61,7 @@ async function handler(req, res){
       if (it.category === "REH") rowsMap[it.fcstTime].RH = parseFloat(it.fcstValue);
     }
 
-    // 4) PT 계산
+    // 계산
     const th = threshold ? Number(threshold) : null;
     const times = Array.from(hoursWanted).sort();
     const rows = [];
@@ -90,7 +76,6 @@ async function handler(req, res){
       }
     }
 
-    // 5) 응답(문장 모드 선택)
     if (mode === "phrase"){
       const lines = rows.map(r=>{
         if (r.PT==null) return `${r.time} 자료가 부족합니다.`;
@@ -98,11 +83,8 @@ async function handler(req, res){
       });
       return res.status(200).json({ place, date: targetDate, nx, ny, base_date, base_time, lines });
     }
-
-    // 기본 JSON
     res.status(200).json({ place, date: targetDate, nx, ny, base_date, base_time, rows });
   } catch (e){
     res.status(500).json({ error: String(e) });
   }
-}
-module.exports = handler;
+};

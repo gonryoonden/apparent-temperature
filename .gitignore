@@ -1,0 +1,12 @@
+# Dependency directories
+node_modules/
+
+# Vercel
+.vercel/
+
+# dotenv environment variables file
+.env
+.env.local
+
+# macOS folder attributes
+.DS_Store
