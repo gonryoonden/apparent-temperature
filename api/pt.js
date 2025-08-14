@@ -40,8 +40,7 @@ module.exports = async (req, res) => {
 
     // 기상청 호출
     const { base_date, base_time } = chooseBase(targetDate, startH);
-    const k = encodeURIComponent(serviceKey);
-    const url = new URL("http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst");
+    url.searchParams.set("serviceKey", serviceKey);
     url.searchParams.set("serviceKey", k);
     url.searchParams.set("pageNo","1");
     url.searchParams.set("numOfRows","2000");
