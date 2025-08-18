@@ -153,8 +153,16 @@ function actionByLevel(level, pt) {
 // ───────────────────────────────────────────────────────────────────────────────
 async function fetchUltraNcst({ nx, ny }) {
   const { base_date, base_time } = getUltraBaseDateTime();
-  const params = new URLSearchParams({
-    serviceKey: process.env.KMA_SERVICE_KEY,
+ // 안전 정규화: 공백/따옴표 제거 + 인코딩 패턴일 때만 decode 시도
+ const rawKey = (process.env.KMA_SERVICE_KEY || "")
+   .trim()
+   .replace(/^['"]|['"]$/g, "");
+ let serviceKey = rawKey;
+ if (/%[0-9A-Fa-f]{2}/.test(rawKey)) {
+   try { serviceKey = decodeURIComponent(rawKey); } catch { /* keep raw */ }
+ }
+ const params = new URLSearchParams({
+   serviceKey,
     dataType: "JSON",
     numOfRows: "100",
     pageNo: "1",
