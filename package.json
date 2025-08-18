@@ -2,12 +2,11 @@
   "name": "apparent-temperature",
   "version": "1.0.0",
   "private": true,
-  "type": "commonjs",
+  "type": "module",
   "scripts": {
-    "dev": "vercel dev",
-    "start": "node api/pt.js"
+    "dev": "vercel dev"
   },
   "engines": {
-    "node": "18.x"
+    "node": "22.x"
   }
 }

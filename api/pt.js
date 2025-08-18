@@ -24,7 +24,7 @@
 import fs from "fs";
 import fsp from "fs/promises";
 import path from "path";
-import nxnyDB from "../lib/nxny_map.json" assert { type: "json" };
+import nxnyDB from "../lib/nxny_map.json" with { type: "json" };
 
 // ───────────────────────────────────────────────────────────────────────────────
 // 상수 및 운영 파라미터
