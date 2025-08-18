@@ -1,24 +1,150 @@
 {
   "openapi": "3.1.0",
-  "info": { "title": "KMA PT API", "version": "1.0.0" },
-  "servers": [{ "url": "https://<REPLACE-WITH-YOUR-VERCEL-URL>" }],
+  "info": {
+    "title": "KMA PT API",
+    "description": "기상청 초단기실황(getUltraSrtNcst) 기반의 현재 체감온도 조회 API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    { "url": "/" }
+  ],
   "paths": {
     "/api/pt": {
       "get": {
-        "operationId": "getPerceivedTemp",
-        "summary": "시간대 체감온도 조회(문장 출력 모드 지원)",
+        "operationId": "getApparentTemp",
+        "summary": "현재 체감온도(실황) 조회",
         "parameters": [
-          { "name": "place", "in": "query", "required": true, "schema": { "type": "string" } },
-          { "name": "date", "in": "query", "required": false, "schema": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" } },
-          { "name": "startHour", "in": "query", "required": true, "schema": { "type": "integer", "minimum": 0, "maximum": 23 } },
-          { "name": "endHour", "in": "query", "required": true, "schema": { "type": "integer", "minimum": 0, "maximum": 23 } },
-          { "name": "threshold", "in": "query", "required": false, "schema": { "type": "number" } },
-          { "name": "mode", "in": "query", "required": false, "schema": { "type": "string", "enum": ["json","phrase"] } }
+          {
+            "name": "region",
+            "in": "query",
+            "required": true,
+            "description": "조회 지역명 (예: '대전광역시', '서울특별시 강남구 역삼동')",
+            "schema": { "type": "string", "minLength": 1 }
+          },
+          {
+            "name": "threshold",
+            "in": "query",
+            "required": false,
+            "description": "사용자 임계값(℃). apparentTemperature ≥ threshold 여부를 함께 반환",
+            "schema": { "type": "number" }
+          },
+          {
+            "name": "phrase",
+            "in": "query",
+            "required": false,
+            "description": "true면 자연어 요약 문장을 함께 반환",
+            "schema": { "type": "boolean", "default": false }
+          },
+          {
+            "name": "compat",
+            "in": "query",
+            "required": false,
+            "description": "구버전(rows) 호환 응답 포함",
+            "schema": { "type": "string", "enum": ["rows"] }
+          },
+          {
+            "name": "debug",
+            "in": "query",
+            "required": false,
+            "description": "true면 디버그 메타 포함(민감정보 제외)",
+            "schema": { "type": "boolean", "default": false }
+          }
         ],
         "responses": {
           "200": {
-            "description": "OK",
-            "content": { "application/json": { "schema": { "type": "object" } } }
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean", "example": true },
+                    "region": { "type": "string", "example": "대전광역시" },
+                    "grid": {
+                      "type": "object",
+                      "properties": {
+                        "nx": { "type": "integer", "example": 67 },
+                        "ny": { "type": "integer", "example": 100 }
+                      },
+                      "required": ["nx", "ny"]
+                    },
+                    "observed": {
+                      "type": "object",
+                      "properties": {
+                        "base_date": { "type": "string", "example": "20250818" },
+                        "base_time": { "type": "string", "example": "1300" },
+                        "temperature": { "type": "number", "example": 32.6 },
+                        "humidity": { "type": "number", "example": 55 },
+                        "windSpeed": { "type": "number", "example": 3.3 }
+                      },
+                      "required": ["base_date", "base_time"]
+                    },
+                    "metrics": {
+                      "type": "object",
+                      "properties": {
+                        "apparentTemperature": { "type": ["number", "null"], "example": 32.6 },
+                        "level": { "type": ["string", "null"], "enum": ["정상", "관심", "주의", "경고", "위험", null] },
+                        "ptFormula": { "type": "string", "example": "KMA2016" }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "properties": {
+                        "legalMinPT": { "type": "number", "example": 31 },
+                        "legalThresholdMet": { "type": ["boolean", "null"], "example": true },
+                        "suggestedAction": { "type": ["string", "null"], "example": "관심(≥32℃): …" }
+                      }
+                    },
+                    "system": {
+                      "type": "object",
+                      "properties": {
+                        "refreshIntervalMs": { "type": "integer", "example": 3600000 }
+                      }
+                    },
+                    "phrase": { "type": "string", "description": "phrase=true일 때만 포함" },
+                    "legacy": { "type": "object", "nullable": true, "description": "compat=rows 사용 시 포함" }
+                  },
+                  "required": ["ok", "region", "grid", "observed", "metrics", "actions", "system"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "요청 형식 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "error": { "type": "string" },
+                    "message": { "type": "string" }
+                  }
+                },
+                "example": { "ok": false, "error": "BadParam", "message": "region 단일 문자열 쿼리가 필요합니다." }
+              }
+            }
+          },
+          "404": {
+            "description": "지역 매칭 실패",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object", "properties": { "ok": { "type": "boolean" }, "error": { "type": "string" }, "message": { "type": "string" } } },
+                "example": { "ok": false, "error": "NotFound", "message": "지역 매칭 실패: \"역삼똥\"" }
+              }
+            }
+          },
+          "500": {
+            "description": "서버/외부 API 오류",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object", "properties": { "ok": { "type": "boolean" }, "error": { "type": "string" }, "message": { "type": "string" }, "source": { "type": "string" }, "code": { "type": ["string", "null"] } } },
+                "examples": {
+                  "kma": { "summary": "KMA API 오류", "value": { "ok": false, "error": "KMA_API_ERROR", "message": "KMA API Error: 22 - LIMIT_EXCEEDED", "source": "KMA", "code": "22" } },
+                  "server": { "summary": "서버 내부 오류", "value": { "ok": false, "error": "INTERNAL_ERROR", "message": "Unexpected token '<' …", "source": "SERVER" } }
+                }
+              }
+            }
           }
         }
       }
