@@ -6,8 +6,8 @@
     "version": "1.0.0"
   },
   "servers": [
-    { "url": "/" }
-  ],
+  { "url": "https://apparent-temperature.vercel.app" }
+],
   "paths": {
     "/api/pt": {
       "get": {
