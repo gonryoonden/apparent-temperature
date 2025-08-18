@@ -8,8 +8,7 @@
   "servers": [
   { "url": "https://apparent-temperature.vercel.app" }
   ],
-
-"paths": {
+  "paths": {
     "/api/pt": {
       "get": {
         "operationId": "getApparentTemp",
