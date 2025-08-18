@@ -68,38 +68,96 @@ function getUltraBaseDateTime(nowUTC = new Date()) {
 }
 
 // ───────────────────────────────────────────────────────────────────────────────
-/** 지역명 매칭(findNxNy): 완전→부분→단어조합→접미(endsWith) 4단계 */
+/** 지역명 매칭(findNxNy): 완전→부분→단어조합→접미(endsWith) 4단계 + 숫자 없는 동 정규화 */
 // ───────────────────────────────────────────────────────────────────────────────
 const normalize = (s) => s.replace(/\s+/g, "").toLowerCase();
 
+// 숫자 없는 동/가/리 이름을 정규화 (예: 역삼동 → 역삼1동/역삼2동 후보)
+function normalizeAdminDivision(input) {
+  // 끝이 '동', '가', '리'로 끝나고 숫자가 없는 경우
+  if (/[동가리]$/.test(input) && !/\d/.test(input)) {
+    // 숫자를 추가한 버전들을 생성 (1동~9동 등)
+    const base = input.substring(0, input.length - 1);
+    const suffix = input[input.length - 1];
+    const candidates = [];
+    for (let i = 1; i <= 9; i++) {
+      candidates.push(base + i + suffix);
+    }
+    return candidates;
+  }
+  return [input];
+}
+
+// 근접 후보 찾기 (편집거리 기반)
+function findClosestMatches(input, keys, limit = 3) {
+  const q = normalize(input);
+  const scored = keys.map(k => {
+    const nk = normalize(k);
+    let score = 0;
+    
+    // 부분 매치 점수
+    if (nk.includes(q)) score += 10;
+    if (nk.endsWith(q)) score += 5;
+    
+    // 공통 토큰 점수
+    const inputTokens = input.split(/[\s·]/g).filter(Boolean);
+    const keyTokens = k.split(/[\s·]/g).filter(Boolean);
+    const commonTokens = inputTokens.filter(t => 
+      keyTokens.some(kt => normalize(kt).includes(normalize(t)))
+    );
+    score += commonTokens.length * 3;
+    
+    // 길이 차이 페널티
+    score -= Math.abs(nk.length - q.length) * 0.5;
+    
+    return { key: k, score };
+  });
+  
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, limit).filter(s => s.score > 0).map(s => s.key);
+}
+
 function findNxNy(input) {
-  if (!input || typeof input !== "string") return null;
+  if (!input || typeof input !== "string") return { coords: null, suggestions: [] };
   const q = normalize(input);
   const keys = Object.keys(nxnyDB);
   const keysByLenDesc = keys.slice().sort((a, b) => b.length - a.length);
 
   // 1) 완전일치
-  for (const k of keys) if (normalize(k) === q) return nxnyDB[k];
+  for (const k of keys) if (normalize(k) === q) return { coords: nxnyDB[k], suggestions: [] };
 
-  // 2) 부분일치 (가장 긴 키 우선)
-  for (const k of keysByLenDesc) if (normalize(k).includes(q)) return nxnyDB[k];
+  // 2) 숫자 없는 동 정규화 시도 (역삼동 → 역삼1동, 역삼2동 등)
+  const normalizedCandidates = normalizeAdminDivision(input);
+  for (const candidate of normalizedCandidates) {
+    const nCandidate = normalize(candidate);
+    for (const k of keys) {
+      if (normalize(k) === nCandidate || normalize(k).endsWith(nCandidate)) {
+        return { coords: nxnyDB[k], suggestions: [] };
+      }
+    }
+  }
 
-  // 3) 단어조합(모든 토큰 포함)
+  // 3) 부분일치 (가장 긴 키 우선)
+  for (const k of keysByLenDesc) if (normalize(k).includes(q)) return { coords: nxnyDB[k], suggestions: [] };
+
+  // 4) 단어조합(모든 토큰 포함)
   const tokens = input.split(/\s+/).filter(Boolean).map(normalize);
   for (const k of keysByLenDesc) {
     const nk = normalize(k);
-    if (tokens.every((t) => nk.includes(t))) return nxnyDB[k];
+    if (tokens.every((t) => nk.includes(t))) return { coords: nxnyDB[k], suggestions: [] };
   }
 
-  // 4) 접미(약칭) 매칭 복원: "역삼동" → "서울특별시 강남구 역삼동"
+  // 5) 접미(약칭) 매칭 복원: "역삼동" → "서울특별시 강남구 역삼동"
   const tailHits = keysByLenDesc.filter((k) => normalize(k).endsWith(q));
   if (tailHits.length) {
     // 후보가 다수면 더 일반적인(짧은) 명칭 우선
     tailHits.sort((a, b) => a.length - b.length);
-    return nxnyDB[tailHits[0]];
+    return { coords: nxnyDB[tailHits[0]], suggestions: [] };
   }
 
-  return null;
+  // 매칭 실패 시 근접 후보 제안
+  const suggestions = findClosestMatches(input, keys, 5);
+  return { coords: null, suggestions };
 }
 
 // ───────────────────────────────────────────────────────────────────────────────
@@ -266,13 +324,19 @@ if (!regionRaw.length) {
     const compat = (getScalar(req.query.compat) || "").toLowerCase(); // "rows" 지원
     const debug = parseBool(getScalar(req.query.debug) || "false");
 
-    const coords = findNxNy(regionRaw);
-    if (!coords) {
-      return res
-        .status(404)
-        .json({ ok: false, error: `지역 매칭 실패: "${regionRaw}" (공식 법정동 명칭에 가깝게 입력)` });
+    const matchResult = findNxNy(regionRaw);
+    if (!matchResult.coords) {
+      const response = {
+        ok: false, 
+        error: `지역 매칭 실패: "${regionRaw}" (공식 법정동 명칭에 가깝게 입력)`
+      };
+      if (matchResult.suggestions && matchResult.suggestions.length > 0) {
+        response.suggestions = matchResult.suggestions;
+        response.message = `다음 지역명으로 다시 시도해보세요: ${matchResult.suggestions.join(', ')}`;
+      }
+      return res.status(404).json(response);
     }
-    const { nx, ny } = coords;
+    const { nx, ny } = matchResult.coords;
 
     const cacheKey = `${nx},${ny}`;
     const cached = getCache(cacheKey);
