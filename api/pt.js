@@ -166,9 +166,22 @@ async function fetchUltraNcst({ nx, ny }) {
   const url = `${KMA_ULTRA_NCST_URL}?${params.toString()}`;
 
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`KMA HTTP ${res.status}`);
+  if (!res.ok) {
+    const errorText = await res.text();
+    // eslint-disable-next-line no-console
+    console.error("KMA API HTTP Error Response:", errorText);
+    throw new Error(`KMA HTTP ${res.status}`);
+  }
 
-  const json = await res.json();
+  const text = await res.text();
+  let json;
+  try {
+    json = JSON.parse(text);
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error("Failed to parse KMA API response as JSON. Response text:", text);
+    throw new Error(`KMA API response is not valid JSON: ${text.slice(0, 200)}`);
+  }
 
   // OpenAPI 헤더 resultCode 확인(00 정상 외 에러 throw)
   const code = json?.response?.header?.resultCode;
