@@ -4,7 +4,7 @@
  * 사용법: node scripts/pt_parity_test.js
  * 출력: 최대/평균 오차, 실패 샘플 (허용오차 PT_EPSILON=0.1 권장)
  */
-const { perceivedTemp: legacyPT } = require("../lib/pt");
+import { perceivedTemp as legacyPT } from "../lib/pt.js";
 
 function perceivedTempKMA(Ta, RH) {
   const Tw =

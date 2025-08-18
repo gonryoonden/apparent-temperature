@@ -24,7 +24,10 @@
 import fs from "fs";
 import fsp from "fs/promises";
 import path from "path";
-import nxnyDB from "../lib/nxny_map.json" with { type: "json" };
+import { readFileSync } from "fs";
+const nxnyDB = JSON.parse(
+  readFileSync(new URL("../lib/nxny_map.json", import.meta.url), "utf-8")
+);
 
 // ───────────────────────────────────────────────────────────────────────────────
 // 상수 및 운영 파라미터
