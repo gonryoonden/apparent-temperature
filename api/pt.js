@@ -204,7 +204,7 @@ async function fetchUltraNcst({ nx, ny }) {
   const rh = map.REH != null ? parseFloat(map.REH) : null; // 습도(%)
   const wsd = map.WSD != null ? parseFloat(map.WSD) : null; // 풍속(m/s)
 
-  return { base_date, base_time, temperature: t, humidity: rh, windSpeed: wsd, raw: json };
+  return { base_date, base_time, temperature: t, humidity: rh, windSpeed: wsd, _raw: json };
 }
 
 // ───────────────────────────────────────────────────────────────────────────────
@@ -297,7 +297,9 @@ export default async function handler(req, res) {
       ok: true,
       region: regionRaw,
       grid: { nx, ny },
-      observed: { ...data },
+      observed: debug ? { ...data, raw: data._raw } :
+                   { base_date: data.base_date, base_time: data.base_time,
+                     temperature: data.temperature, humidity: data.humidity, windSpeed: data.windSpeed },
       metrics: {
         apparentTemperature: apparent,
         level,
