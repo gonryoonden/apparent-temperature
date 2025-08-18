@@ -241,7 +241,9 @@ function getScalar(q) {
   if (q === undefined || q === null) return null;
   return String(q);
 }
+// 개선: 실제 boolean( true / false )도 허용
 function parseBool(s) {
+  if (typeof s === "boolean") return s;
   return typeof s === "string" && s.toLowerCase() === "true";
 }
 function parseNumberOrNull(s) {
@@ -255,16 +257,16 @@ function parseNumberOrNull(s) {
 // ───────────────────────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
   try {
-    const regionRaw = getScalar(req.query.region);
-    if (!regionRaw) {
-      return res.status(400).json({ ok: false, error: "region 단일 문자열 쿼리가 필요합니다." });
-    }
+    const regionRaw = (getScalar(req.query.region) || "").trim();
+if (!regionRaw.length) {
+  return res.status(400).json({ ok:false, error:"region 쿼리가 비어 있습니다." });
+}
     const threshold = parseNumberOrNull(getScalar(req.query.threshold));
     const phrase = parseBool(getScalar(req.query.phrase) || "false");
     const compat = (getScalar(req.query.compat) || "").toLowerCase(); // "rows" 지원
     const debug = parseBool(getScalar(req.query.debug) || "false");
 
-    const coords = findNxNy(regionRaw.trim());
+    const coords = findNxNy(regionRaw);
     if (!coords) {
       return res
         .status(404)
