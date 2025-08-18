@@ -153,27 +153,23 @@ function actionByLevel(level, pt) {
 // ───────────────────────────────────────────────────────────────────────────────
 async function fetchUltraNcst({ nx, ny }) {
   const { base_date, base_time } = getUltraBaseDateTime();
- // 안전 정규화: 공백/따옴표 제거 + 인코딩 패턴일 때만 decode 시도
+ // (정책) Encoding 키만 사용: 공백/따옴표 제거 후 raw 그대로 사용
  const rawKey = (process.env.KMA_SERVICE_KEY || "")
    .trim()
    .replace(/^['"]|['"]$/g, "");
- let serviceKey = rawKey;
- if (/%[0-9A-Fa-f]{2}/.test(rawKey)) {
-   try { serviceKey = decodeURIComponent(rawKey); } catch { /* keep raw */ }
- }
- const params = new URLSearchParams({
-   serviceKey,
-    dataType: "JSON",
-    numOfRows: "100",
-    pageNo: "1",
-    base_date,
-    base_time,
-    nx: String(nx),
-    ny: String(ny),
-  });
-  const url = `${KMA_ULTRA_NCST_URL}?${params.toString()}`;
+ // 나머지 파라미터만 인코딩 → serviceKey는 직접 붙여 이중 인코딩 방지
+ const q = new URLSearchParams({
+   dataType: "JSON",
+   numOfRows: "100",
+   pageNo: "1",
+   base_date,
+   base_time,
+   nx: String(nx),
+   ny: String(ny),
+ });
+ const url = `${KMA_ULTRA_NCST_URL}?serviceKey=${rawKey}&${q.toString()}`;
 
-  const res = await fetch(url);
+  const res = await fetch(url, { headers: { accept: "application/json" } });
   if (!res.ok) {
     const errorText = await res.text();
     // eslint-disable-next-line no-console
