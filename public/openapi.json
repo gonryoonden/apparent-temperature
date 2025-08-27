@@ -1,25 +1,40 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "KMA PT API",
-    "description": "기상청 초단기실황(getUltraSrtNcst) 기반의 현재 체감온도 조회 API",
-    "version": "1.0.0"
+    "title": "KMA Apparent Temperature API",
+    "description": "기상청 초단기실황/단기예보 기반 체감온도 조회 API",
+    "version": "1.1.0"
   },
   "servers": [
-  { "url": "https://apparent-temperature.vercel.app" }
+    { "url": "https://apparent-temperature.vercel.app" }
   ],
   "paths": {
     "/api/pt": {
       "get": {
-        "operationId": "getApparentTemp",
+        "operationId": "getApparentTempNow",
         "summary": "현재 체감온도(실황) 조회",
+        "description": "region 또는 (lat,lon) 중 하나로 조회합니다.",
         "parameters": [
           {
             "name": "region",
             "in": "query",
-            "required": true,
-            "description": "조회 지역명 (예: '대전광역시', '서울특별시 강남구 역삼동')",
+            "required": false,
+            "description": "조회 지역명 (예: '서울특별시 강남구 역삼동'). region 또는 (lat,lon) 중 하나는 반드시 제공",
             "schema": { "type": "string", "minLength": 1 }
+          },
+          {
+            "name": "lat",
+            "in": "query",
+            "required": false,
+            "description": "위도 (region 미지정 시 lon과 함께 필수)",
+            "schema": { "type": "number" }
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": false,
+            "description": "경도 (region 미지정 시 lat과 함께 필수)",
+            "schema": { "type": "number" }
           },
           {
             "name": "threshold",
@@ -57,32 +72,33 @@
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "required": ["ok", "region", "grid", "observed", "metrics", "actions", "system"],
                   "properties": {
                     "ok": { "type": "boolean", "example": true },
-                    "region": { "type": "string", "example": "대전광역시" },
+                    "region": { "type": "string", "example": "서울특별시 강남구 역삼동" },
                     "grid": {
                       "type": "object",
+                      "required": ["nx", "ny"],
                       "properties": {
-                        "nx": { "type": "integer", "example": 67 },
-                        "ny": { "type": "integer", "example": 100 }
-                      },
-                      "required": ["nx", "ny"]
+                        "nx": { "type": "integer", "example": 61 },
+                        "ny": { "type": "integer", "example": 125 }
+                      }
                     },
                     "observed": {
                       "type": "object",
+                      "required": ["base_date", "base_time"],
                       "properties": {
-                        "base_date": { "type": "string", "example": "20250818" },
-                        "base_time": { "type": "string", "example": "1300" },
-                        "temperature": { "type": "number", "example": 32.6 },
+                        "base_date": { "type": "string", "example": "20250827" },
+                        "base_time": { "type": "string", "example": "1100" },
+                        "temperature": { "type": "number", "example": 29.9 },
                         "humidity": { "type": "number", "example": 55 },
-                        "windSpeed": { "type": "number", "example": 3.3 }
-                      },
-                      "required": ["base_date", "base_time"]
+                        "windSpeed": { "type": "number", "example": 2.0 }
+                      }
                     },
                     "metrics": {
                       "type": "object",
                       "properties": {
-                        "apparentTemperature": { "type": ["number", "null"], "example": 32.6 },
+                        "apparentTemperature": { "type": ["number", "null"], "example": 29.9 },
                         "level": { "type": ["string", "null"], "enum": ["정상", "관심", "주의", "경고", "위험", null] },
                         "ptFormula": { "type": "string", "example": "KMA2016" }
                       }
@@ -91,61 +107,110 @@
                       "type": "object",
                       "properties": {
                         "legalMinPT": { "type": "number", "example": 31 },
-                        "legalThresholdMet": { "type": ["boolean", "null"], "example": true },
-                        "suggestedAction": { "type": ["string", "null"], "example": "관심(≥32℃): …" }
+                        "legalThresholdMet": { "type": ["boolean", "null"], "example": false },
+                        "suggestedAction": { "type": ["string", "null"], "example": "정상: 물·그늘·휴식 준비상태 유지…" }
                       }
                     },
                     "system": {
                       "type": "object",
                       "properties": {
-                        "refreshIntervalMs": { "type": "integer", "example": 3600000 }
+                        "refreshIntervalMs": { "type": "integer", "example": 3600000 },
+                        "cache": {
+                          "type": "object",
+                          "properties": {
+                            "hit": { "type": "boolean", "example": true },
+                            "ageMs": { "type": "integer", "example": 1234 },
+                            "nextRefreshMs": { "type": "integer", "example": 120000 }
+                          }
+                        }
                       }
                     },
                     "phrase": { "type": "string", "description": "phrase=true일 때만 포함" },
                     "legacy": { "type": "object", "nullable": true, "description": "compat=rows 사용 시 포함" }
-                  },
-                  "required": ["ok", "region", "grid", "observed", "metrics", "actions", "system"]
+                  }
                 }
               }
             }
           },
-          "400": {
-            "description": "요청 형식 오류",
+          "400": { "description": "요청 형식 오류" },
+          "404": { "description": "지역 매칭 실패" },
+          "500": { "description": "서버/외부 API 오류" }
+        }
+      }
+    },
+    "/api/pt-forecast": {
+      "get": {
+        "operationId": "getApparentTempForecast",
+        "summary": "하루 체감온도(단기예보) 시간대별 조회",
+        "description": "region 또는 (lat,lon) 중 하나로 조회합니다.",
+        "parameters": [
+          { "name": "region", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "lat", "in": "query", "required": false, "schema": { "type": "number" } },
+          { "name": "lon", "in": "query", "required": false, "schema": { "type": "number" } },
+          { "name": "debug", "in": "query", "required": false, "schema": { "type": "boolean", "default": false } }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "required": ["ok", "region", "grid", "base", "hours", "summary", "flags"],
                   "properties": {
-                    "ok": { "type": "boolean" },
-                    "error": { "type": "string" },
-                    "message": { "type": "string" }
+                    "ok": { "type": "boolean", "example": true },
+                    "region": { "type": "string", "example": "서울특별시 강남구 역삼동" },
+                    "grid": {
+                      "type": "object",
+                      "required": ["nx", "ny"],
+                      "properties": {
+                        "nx": { "type": "integer", "example": 61 },
+                        "ny": { "type": "integer", "example": 125 }
+                      }
+                    },
+                    "base": {
+                      "type": "object",
+                      "required": ["base_date", "base_time"],
+                      "properties": {
+                        "base_date": { "type": "string", "example": "20250827" },
+                        "base_time": { "type": "string", "example": "1100" }
+                      }
+                    },
+                    "hours": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["dt"],
+                        "properties": {
+                          "dt": { "type": "string", "example": "202508271500" },
+                          "tmp": { "type": ["number", "null"], "example": 32 },
+                          "reh": { "type": ["number", "null"], "example": 43 },
+                          "wsd": { "type": ["number", "null"], "example": 2.8 },
+                          "pty": { "type": ["integer", "null"], "example": 0, "description": "강수형태(0:없음,…)" },
+                          "sky": { "type": ["integer", "null"], "example": 3, "description": "하늘상태" },
+                          "pt":  { "type": ["number", "null"], "example": 30.8 },
+                          "level": { "type": ["string", "null"], "enum": ["정상","관심","주의","경고","위험", null] }
+                        }
+                      }
+                    },
+                    "summary": {
+                      "type": "object",
+                      "properties": {
+                        "maxPT": { "type": ["object","null"], "properties": { "dt": { "type":"string" }, "value": { "type":"number" }, "level": { "type":"string" } } },
+                        "minPT": { "type": ["object","null"], "properties": { "dt": { "type":"string" }, "value": { "type":"number" }, "level": { "type":"string" } } },
+                        "worstWindow": { "type": ["object","null"], "properties": { "from": { "type":"string" }, "to": { "type":"string" }, "hours": { "type":"integer" } } },
+                        "headline": { "type": ["string","null"], "example": "오늘 최고 체감 33.1℃(12시, 관심), 비 가능" }
+                      }
+                    },
+                    "flags": { "type": "array", "items": { "type": "string" }, "example": ["강수 가능성"] }
                   }
-                },
-                "example": { "ok": false, "error": "BadParam", "message": "region 단일 문자열 쿼리가 필요합니다." }
-              }
-            }
-          },
-          "404": {
-            "description": "지역 매칭 실패",
-            "content": {
-              "application/json": {
-                "schema": { "type": "object", "properties": { "ok": { "type": "boolean" }, "error": { "type": "string" }, "message": { "type": "string" } } },
-                "example": { "ok": false, "error": "NotFound", "message": "지역 매칭 실패: \"역삼똥\"" }
-              }
-            }
-          },
-          "500": {
-            "description": "서버/외부 API 오류",
-            "content": {
-              "application/json": {
-                "schema": { "type": "object", "properties": { "ok": { "type": "boolean" }, "error": { "type": "string" }, "message": { "type": "string" }, "source": { "type": "string" }, "code": { "type": ["string", "null"] } } },
-                "examples": {
-                  "kma": { "summary": "KMA API 오류", "value": { "ok": false, "error": "KMA_API_ERROR", "message": "KMA API Error: 22 - LIMIT_EXCEEDED", "source": "KMA", "code": "22" } },
-                  "server": { "summary": "서버 내부 오류", "value": { "ok": false, "error": "INTERNAL_ERROR", "message": "Unexpected token '<' …", "source": "SERVER" } }
                 }
               }
             }
-          }
+          },
+          "400": { "description": "요청 형식 오류" },
+          "404": { "description": "지역 매칭 실패" },
+          "500": { "description": "서버/외부 API 오류" }
         }
       }
     }
