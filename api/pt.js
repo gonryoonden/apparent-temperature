@@ -18,7 +18,6 @@
  * - KMA_SERVICE_KEY : 공공데이터포털 기상청 단기예보/초단기 API 서비스키
  * 선택 환경변수:
  * - LOG_DIR         : 로그 디렉터리(기본 /tmp/logs)
- * - CACHE_TTL_MS    : 캐시 TTL 밀리초(기본 600000=10분)
  */
 
 import fs from "fs";
@@ -41,8 +40,35 @@ const KMA_ULTRA_NCST_URL =
 export const REFRESH_INTERVAL_MS = 60 * 60 * 1000;
 
 // 동일 지역 10분 캐시 (in-memory: 서버리스 콜드스타트/다중 인스턴스에서는 한계)
-const CACHE_TTL_MS = parseInt(process.env.CACHE_TTL_MS || "", 10) || 10 * 60 * 1000;
-const cache = new Map(); // warm 인스턴스 지속 시에만 효율
+function msUntilNext10Min(now = new Date()) {
+  const m = now.getUTCMinutes(), s = now.getUTCSeconds(), ms = now.getUTCMilliseconds();
+  const next = (Math.floor(m/10)+1)*10; // 0→10→20…
+  const addMin = (next === 60) ? (60 - m) : (next - m);
+  const base = addMin*60*1000 - s*1000 - ms;
+  return Math.max(base - 15*1000, 60*1000); // 15초 여유, 최소 1분
+}
+
+const CACHE_MAP = new Map();
+
+function getCache(key) {
+  const hit = CACHE_MAP.get(key);
+  if (!hit) return null;
+  if (Date.now() <= hit.expireAt) {
+    return { ...hit, cacheHit: true, cacheAgeMs: Date.now() - hit.savedAt };
+  }
+  CACHE_MAP.delete(key);
+  return null;
+}
+
+function setCache(key, value) {
+  const ttl = msUntilNext10Min();
+  CACHE_MAP.set(key, {
+    ...value,
+    savedAt: Date.now(),
+    expireAt: Date.now() + ttl,
+    cacheHit: false,
+  });
+}
 
 // 로그 저장 경로: 서버리스 쓰기 보장 디렉터리 우선(/tmp), 없으면 cwd/logs
 const LOG_DIR = process.env.LOG_DIR || "/tmp/logs";
@@ -266,21 +292,6 @@ async function fetchUltraNcst({ nx, ny }) {
 }
 
 // ───────────────────────────────────────────────────────────────────────────────
-/** 캐시 (nx,ny 키로 10분 TTL) */
-// ───────────────────────────────────────────────────────────────────────────────
-function getCache(key) {
-  const hit = cache.get(key);
-  if (!hit) return null;
-  const age = Date.now() - hit.savedAt;
-  if (age <= CACHE_TTL_MS) return { ...hit, cacheHit: true, cacheAgeMs: age };
-  cache.delete(key);
-  return null;
-}
-function setCache(key, value) {
-  cache.set(key, { ...value, savedAt: Date.now(), cacheHit: false });
-}
-
-// ───────────────────────────────────────────────────────────────────────────────
 /** 로깅(JSONL): 비동기/구조화. 서버리스는 /tmp 사용 권장 */
 // ───────────────────────────────────────────────────────────────────────────────
 async function writeLogLine(obj) {
@@ -363,10 +374,13 @@ if (!regionRaw.length) {
       ok: true,
       region: regionRaw,
       grid: { nx, ny },
-      observed: debug ? { ...data, raw: data._raw } :
-                   { base_date: data.base_date, base_time: data.base_time,
-                     temperature: data.temperature, humidity: data.humidity, windSpeed: data.windSpeed },
-      metrics: {
+      observed: debug
+        ? { ...data, raw: data._raw }
+        : {
+            base_date: data.base_date, base_time: data.base_time,
+            temperature: data.temperature, humidity: data.humidity, windSpeed: data.windSpeed
+          },
+          metrics: {
         apparentTemperature: apparent,
         level,
         ptFormula: PT_FORMULA,
@@ -384,9 +398,8 @@ if (!regionRaw.length) {
         cache: {
           hit: Boolean(cached),
           ageMs: cached?.cacheAgeMs || 0,
-          ttlMs: CACHE_TTL_MS,
-          note: "서버리스 환경에서는 인스턴스별 캐시로 공유되지 않을 수 있습니다.",
-        },
+          nextRefreshMs: msUntilNext10Min(),
+          note: "다음 10분 경계까지의 예상 TTL(동적). 서버리스 환경에선 인스턴스별 캐시가 공유되지 않을 수 있습니다.",        },
         logFile: LOG_FILE,
         ts: nowISO,
       },
