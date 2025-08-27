@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "engines": { "node": "22.x" },
   "scripts": {
-    "dev": "vercel dev"
+    "dev": "vercel dev",
+    "build": "node scripts/build-legal-admin-map.mjs"
   },
-  "engines": {
-    "node": "22.x"
+  "devDependencies": {
+    "fast-glob": "^3.3.3",
+    "xlsx": "^0.18.5"
   }
 }
