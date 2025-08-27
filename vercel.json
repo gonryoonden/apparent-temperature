@@ -2,12 +2,8 @@
   "version": 2,
   "functions": {
     "api/**/*.js": {
-      "includeFiles": [
-        "lib/legal_to_admin.json",
-        "lib/legal_index_city_dong.json",
-        "lib/nxny_map.json",
-        "lib/aliases.json"
-      ]
+      "includeFiles": "lib/**"
     }
-  }
+  },
+  "devCommand": ""
 }
