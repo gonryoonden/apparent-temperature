@@ -3,9 +3,29 @@ import fs from "fs";
 import path from "path";
 import fg from "fast-glob";
 
-function latestXlsx(pattern) {
-  const files = fg.sync(pattern, { onlyFiles: true, dot: false });
-  if (!files.length) throw new Error(`No files matched: ${pattern}`);
+function latestXlsx(patterns) {
+  const pats = Array.isArray(patterns) ? patterns : [patterns];
+  const search = [
+    ...pats,
+    ...pats.map(p => `./${p}`),
+    ...pats.map(p => `data/${p}`),
+    ...pats.map(p => `./data/${p}`),
+    ...pats.map(p => `**/${p}`),
+  ];
+  const files = fg.sync(search, {
+    onlyFiles: true,
+    dot: false,
+    caseSensitiveMatch: false, // .XLSX도 허용
+  });
+  if (!files.length) {
+    const debug = {
+      cwd: process.cwd(),
+      cwdFiles: fs.readdirSync('.').filter(f => /\.xlsx?$/i.test(f)),
+      dataDir: fs.existsSync('data') ? fs.readdirSync('data').filter(f => /\.xlsx?$/i.test(f)) : [],
+      tried: search,
+    };
+    throw new Error(`No files matched any pattern.\n` + JSON.stringify(debug, null, 2));
+  }
   files.sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
   return files[0];
 }
@@ -84,7 +104,9 @@ function buildFromMixOnly(rowsM) {
 
 async function main() {
   // 1) XLSX만 읽기
-  const fileM = latestXlsx("KIKmix*.xlsx");    // 매핑
+  const argMix = process.argv.find(a => a.startsWith("--mix="));
+  const fileM = argMix ? argMix.split("=")[1] : latestXlsx(["KIKmix*.xlsx", "KIKmix*.xls*"]);
+  console.log("MIX file:", fileM);
 
   const rowsM = loadXlsxRows(fileM);
   console.log(`rows: M=${rowsM.length}`);
