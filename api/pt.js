@@ -351,8 +351,12 @@ if (!regionRaw.length) {
 
     const cacheKey = `${nx},${ny}`;
     const cached = getCache(cacheKey);
-    const data = cached || (await fetchUltraNcst({ nx, ny }));
+    const data   = cached || (await fetchUltraNcst({ nx, ny }));
     if (!cached) setCache(cacheKey, data);
+    // 캐시 메타(표기용)
+    const cacheMeta = cached
+      ? { hit: true,  ageMs: cached.cacheAgeMs }
+      : { hit: false, ageMs: 0 };
 
     const { temperature, humidity, windSpeed } = data;
 
@@ -395,7 +399,9 @@ if (!regionRaw.length) {
       },
       system: {
         refreshIntervalMs: 3600000,
-        cache: { hit, ageMs, nextRefreshMs: msUntilNext10Min(),
+            cache: {
+          ...cacheMeta,
+          nextRefreshMs: msUntilNext10Min(),
           note: "다음 10분 경계까지의 예상 TTL(동적). 서버리스 환경에선 인스턴스별 캐시가 공유되지 않을 수 있습니다."
         },        
         logFile: LOG_FILE,
