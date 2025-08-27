@@ -394,12 +394,10 @@ if (!regionRaw.length) {
         customThresholdExceeded: thresholdExceeded,
       },
       system: {
-        refreshIntervalMs: REFRESH_INTERVAL_MS,
-        cache: {
-          hit: Boolean(cached),
-          ageMs: cached?.cacheAgeMs || 0,
-          nextRefreshMs: msUntilNext10Min(),
-          note: "다음 10분 경계까지의 예상 TTL(동적). 서버리스 환경에선 인스턴스별 캐시가 공유되지 않을 수 있습니다.",        },
+        refreshIntervalMs: 3600000,
+        cache: { hit, ageMs, nextRefreshMs: msUntilNext10Min(),
+          note: "다음 10분 경계까지의 예상 TTL(동적). 서버리스 환경에선 인스턴스별 캐시가 공유되지 않을 수 있습니다."
+        },        
         logFile: LOG_FILE,
         ts: nowISO,
       },
