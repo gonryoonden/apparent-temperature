@@ -1,7 +1,7 @@
 import { callVilageWithFallback } from "../lib/kmaForecast.js";
 import { findNxNy, perceivedTempKMA, levelByPT } from "../lib/ptCore.js";
 
-
+const { resolveRegion } = require('../lib/region-resolver');
 
 export default async function handler(req, res) {
   try {
@@ -78,3 +78,41 @@ export default async function handler(req, res) {
     return res.status(500).json({ ok:false, error:String(e) });
   }
 }
+
+module.exports = async function handler(req, res) {
+  try {
+    const q = (req.query.q || req.body?.q || '').trim();
+
+    // ① 선검사(정규화 → 법정→행정 → nx/ny)
+    const r = resolveRegion(q);
+    console.log('[pt-forecast] q=', q, 'resolve=', {
+      ok: r.ok, match: r.match, adminKey: r.adminKey, nxny: r.nxny
+    });
+
+    // ② 실패시: 외부 API(커넥터) 호출하지 말고 여기서 종료
+    if (!r.ok) {
+      return res.status(400).json({
+        ok: false,
+        reason: r.reason,          // 'NOT_FOUND' 등
+        suggestions: r.suggestions // 후보 리스트
+      });
+    }
+
+    // ③ 성공시: 기존 로직이 nx,ny를 사용하도록 주입
+    const { nx, ny } = r.nxny;
+    // (A) 기존 코드가 req.query.nx/ny를 읽는다면:
+    req.query.nx = String(nx);
+    req.query.ny = String(ny);
+    req.query.adminKey = r.adminKey || r.legalKey || ''; // 로그/응답용
+
+    // (B) 만약 아래에서 별도의 fetch 함수를 직접 호출한다면:
+    // const forecast = await kmaForecast.getByGrid(nx, ny);
+
+    // ④ 이후 기존 커넥터 호출/응답 로직을 그대로 진행
+    //   └ 위 (A)처럼 req.query에 주입해두면 기존 코드가 그대로 동작합니다.
+    // ... 나머지 기존 코드 ...
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, message: 'internal_error' });
+  }
+};
