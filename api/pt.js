@@ -21,12 +21,14 @@
  */
 
 import { fetchWithRetry } from "../lib/http.js";
+import { cacheGet, cacheSet } from "../lib/cache.js";
+import { ttlToNext10m } from "../lib/kma-ttl.js";
 import { resolveRegion } from "../lib/region-resolver.js";
-if (!resolveRegion) throw new Error("resolveRegion not found in region-resolver.js");
 import fs from "fs";
 import fsp from "fs/promises";
 import path from "path";
 import { readFileSync } from "fs";
+import { normalizeServiceKey } from "../lib/kmaKey.js";
 const nxnyDB = JSON.parse(
   readFileSync(new URL("../lib/nxny_map.json", import.meta.url), "utf-8")
 );
@@ -36,42 +38,11 @@ const nxnyDB = JSON.parse(
 // ───────────────────────────────────────────────────────────────────────────────
 
 // 초단기실황(실황) 엔드포인트: 정시 생성, 매시 10분 이후 제공
-const KMA_ULTRA_NCST_URL =
-  "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst";
+const PROTO = (process.env.KMA_SCHEME || "http").trim();
+const KMA_ULTRA_NCST_URL = `${PROTO}://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst`;
 
 // 가이드 기준 1시간 주기(실황). 메타정보로 응답에 노출만 함.
 export const REFRESH_INTERVAL_MS = 60 * 60 * 1000;
-
-// 동일 지역 10분 캐시 (in-memory: 서버리스 콜드스타트/다중 인스턴스에서는 한계)
-function msUntilNext10Min(now = new Date()) {
-  const m = now.getUTCMinutes(), s = now.getUTCSeconds(), ms = now.getUTCMilliseconds();
-  const next = (Math.floor(m/10)+1)*10; // 0→10→20…
-  const addMin = (next === 60) ? (60 - m) : (next - m);
-  const base = addMin*60*1000 - s*1000 - ms;
-  return Math.max(base - 15*1000, 60*1000); // 15초 여유, 최소 1분
-}
-
-const CACHE_MAP = new Map();
-
-function getCache(key) {
-  const hit = CACHE_MAP.get(key);
-  if (!hit) return null;
-  if (Date.now() <= hit.expireAt) {
-    return { ...hit, cacheHit: true, cacheAgeMs: Date.now() - hit.savedAt };
-  }
-  CACHE_MAP.delete(key);
-  return null;
-}
-
-function setCache(key, value) {
-  const ttl = msUntilNext10Min();
-  CACHE_MAP.set(key, {
-    ...value,
-    savedAt: Date.now(),
-    expireAt: Date.now() + ttl,
-    cacheHit: false,
-  });
-}
 
 // 로그 저장 경로: 서버리스 쓰기 보장 디렉터리 우선(/tmp), 없으면 cwd/logs
 const LOG_DIR = process.env.LOG_DIR || "/tmp/logs";
@@ -240,58 +211,33 @@ function actionByLevel(level, pt) {
 // ───────────────────────────────────────────────────────────────────────────────
 async function fetchUltraNcst({ nx, ny }) {
   const { base_date, base_time } = getUltraBaseDateTime();
- // (정책) Encoding 키만 사용: 공백/따옴표 제거 후 raw 그대로 사용
- const rawKey = (process.env.KMA_SERVICE_KEY || "")
-   .trim()
-   .replace(/^['"]|['"]$/g, "");
- // 나머지 파라미터만 인코딩 → serviceKey는 직접 붙여 이중 인코딩 방지
- const q = new URLSearchParams({
-   dataType: "JSON",
-   numOfRows: "100",
-   pageNo: "1",
-   base_date,
-   base_time,
-   nx: String(nx),
-   ny: String(ny),
- });
- const url = `${KMA_ULTRA_NCST_URL}?serviceKey=${rawKey}&${q.toString()}`;
-
-  const res = await fetchWithRetry(url, { headers: { accept: "application/json" }, timeoutMs: 3500, retries: 1 });
-  if (!res.ok) {
-    const errorText = await res.text();
-    // eslint-disable-next-line no-console
-    console.error("KMA API HTTP Error Response:", errorText);
-    throw new Error(`KMA HTTP ${res.status}`);
-  }
-
+  const rawKey = normalizeServiceKey(process.env.KMA_SERVICE_KEY || "");
+  const q = new URLSearchParams({
+    dataType: "JSON", numOfRows: "100", pageNo: "1",
+    base_date, base_time, nx: String(nx), ny: String(ny),
+  });
+  const url = `${KMA_ULTRA_NCST_URL}?serviceKey=${rawKey}&${q.toString()}`;
+  const res = await fetchWithRetry(url, { timeoutMs: 3500, retries: 1 });
   const text = await res.text();
-  let json;
-  try {
-    json = JSON.parse(text);
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error("Failed to parse KMA API response as JSON. Response text:", text);
-    throw new Error(`KMA API response is not valid JSON: ${text.slice(0, 200)}`);
+  let json; try { json = JSON.parse(text); }
+  catch { throw new Error(`KMA JSON parse fail: ${text.slice(0,200)}`); }
+  const code = String(json?.response?.header?.resultCode ?? "");
+  const msg  = json?.response?.header?.resultMsg;
+  if (code !== "00" && code !== "0") {
+    const e = new Error(`KMA API Error: ${code} - ${msg}`); e.name="KmaApiError"; e.code=code; throw e;
   }
-
-  // OpenAPI 헤더 resultCode 확인(00 정상 외 에러 throw)
-  const code = json?.response?.header?.resultCode;
-  const msg = json?.response?.header?.resultMsg;
-  if (code !== "00") {
-    const e = new Error(`KMA API Error: ${code} - ${msg}`);
-    e.name = "KmaApiError";
-    e.code = code;
-    e.msg = msg;
-    throw e;
-  }
-
   const items = json?.response?.body?.items?.item || [];
-  const map = Object.fromEntries(items.map((it) => [it.category, it.obsrValue]));
-  const t = map.T1H != null ? parseFloat(map.T1H) : null; // 기온(℃)
-  const rh = map.REH != null ? parseFloat(map.REH) : null; // 습도(%)
-  const wsd = map.WSD != null ? parseFloat(map.WSD) : null; // 풍속(m/s)
-
-  return { base_date, base_time, temperature: t, humidity: rh, windSpeed: wsd, _raw: json };
+  const pick = (cat) => {
+    const it = items.find(x => x.category === cat);
+    return it ? Number(it.obsrValue) : null;
+  };
+  return {
+    base_date, base_time,
+    temperature: pick("T1H"),
+    humidity:    pick("REH"),
+    windSpeed:   pick("WSD"),
+    _raw: json
+  };
 }
 
 // ───────────────────────────────────────────────────────────────────────────────
@@ -324,22 +270,102 @@ function parseNumberOrNull(s) {
   return Number.isFinite(n) ? n : null;
 }
 
+function format(data, regionRaw, nx, ny, debug, compat, phrase) {
+  const { temperature, humidity, windSpeed } = data;
+
+  let apparent = null;
+  let level = null;
+  let action = null;
+  if (temperature != null && humidity != null) {
+    apparent = perceivedTempKMA(temperature, humidity);
+    level = levelByPT(apparent);
+    action = actionByLevel(level, apparent);
+  }
+
+  const legalThresholdMet = apparent != null ? apparent >= LEGAL_MIN_PT : null;
+  const thresholdExceeded =
+    threshold != null && apparent != null ? apparent >= threshold : null;
+
+  const nowISO = new Date().toISOString();
+  const payload = {
+    ok: true,
+    ...(data.stale && { stale: true, note: data.note }),
+    region: regionRaw,
+    grid: { nx, ny },
+    observed: debug
+      ? { ...data, raw: data._raw }
+      : {
+          base_date: data.base_date, base_time: data.base_time,
+          temperature: data.temperature, humidity: data.humidity, windSpeed: data.windSpeed
+        },
+    metrics: {
+      apparentTemperature: apparent,
+      level,
+      ptFormula: PT_FORMULA,
+      ptEpsilon: PT_EPSILON,
+    },
+    actions: {
+      legalMinPT: LEGAL_MIN_PT,
+      legalThresholdMet,
+      suggestedAction: action,
+      customThreshold: threshold,
+      customThresholdExceeded: thresholdExceeded,
+    },
+    system: {
+      refreshIntervalMs: 3600000,
+      cache: {
+        nextRefreshMs: ttlToNext10m(),
+        note: "다음 10분 경계까지의 예상 TTL(동적). 서버리스 환경에선 인스턴스별 캐시가 공유되지 않을 수 있습니다."
+      },
+      logFile: LOG_FILE,
+      ts: nowISO,
+    },
+  };
+
+  if (compat === "rows") {
+    payload.legacy = {
+      place: regionRaw,
+      date: data.base_date,
+      nx, ny,
+      base_date: data.base_date,
+      base_time: data.base_time,
+      rows: apparent != null ? [{
+        hour: data.base_time,
+        Ta: temperature, RH: humidity, PT: apparent, level, action,
+      }] : [],
+    };
+  }
+
+  if (debug) {
+    payload.debug = {
+      kmaMeta: { base_date: data.base_date, base_time: data.base_time, nx, ny },
+    };
+  }
+
+  if (phrase) {
+    payload.phrase = apparent != null
+      ? `현재 ${regionRaw}의 기온 ${temperature}℃, 습도 ${humidity}%, 체감 ${apparent}℃(${level}). ${action}`
+      : `현재 ${regionRaw}의 실황 자료가 부족해 체감온도를 산출하지 못했습니다.`;
+  }
+  return payload;
+}
+
 // ───────────────────────────────────────────────────────────────────────────────
 /** API 핸들러 */
 // ───────────────────────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
+  let latestKey, regionRaw, nx, ny, debug, compat, phrase;
   try {
-    const regionRaw = (getScalar(req.query.region) || "").trim();
+    regionRaw = (getScalar(req.query.region) || "").trim();
     if (!regionRaw.length) {
       return res.status(200).json({ ok: false, error: "region 쿼리가 비어 있습니다." });
     }
     const threshold = parseNumberOrNull(getScalar(req.query.threshold));
-    const phrase = parseBool(getScalar(req.query.phrase) || "false");
-    const compat = (getScalar(req.query.compat) || "").toLowerCase(); // "rows" 지원
-    const debug = parseBool(getScalar(req.query.debug) || "false");
+    phrase = parseBool(getScalar(req.query.phrase) || "false");
+    compat = (getScalar(req.query.compat) || "").toLowerCase(); // "rows" 지원
+    debug = parseBool(getScalar(req.query.debug) || "false");
 
     // ➊ 리졸버 우선 (법정→행정→nx,ny)
-    let nx, ny;
     const r = resolveRegion(regionRaw);
     if (r.ok) {
       nx = r.nxny.nx;
@@ -362,25 +388,27 @@ export default async function handler(req, res) {
       }
       ({ nx, ny } = matchResult.coords);
     }
-    const cacheKey = `${nx},${ny}`;
-    
-    let data;
-    let cacheMeta;
+    // 캐시 키 전략: nx,ny + 발표정시
+    const { base_date, base_time } = getUltraBaseDateTime();
+    const cacheKey = `${nx},${ny},ultra,${base_date}${base_time}`;
+    latestKey = `${nx},${ny},ultra,latest`;
+    const ttlSec = Math.max(60, Math.floor(ttlToNext10m()/1000));
+ 
+    let data; let cacheMeta;
 
-    try {
-      data = await fetchUltraNcst({ nx, ny });
-      setCache(cacheKey, data);
-      cacheMeta = { hit: false, ageMs: 0 };
-    } catch (e) {
-      console.error(e);
-      const last = CACHE_MAP.get(cacheKey);
-      if (last && (Date.now() - last.savedAt < 15 * 60 * 1000)) {
-        data = { ...last, stale: true, note: 'fallback_cache' };
-        cacheMeta = { hit: true, ageMs: Date.now() - last.savedAt, stale: true };
+      // 1) 캐시 조회
+      const cached = await cacheGet(cacheKey);
+      if (cached) {
+        data = cached;
+        cacheMeta = { hit: true, ageMs: 0 };
       } else {
-        return res.status(200).json({ ok: false, reason: 'upstream_error' });
+        // 2) 원본 호출 → 캐시 저장(+ latest)
+        const fresh = await fetchUltraNcst({ nx, ny });
+        await cacheSet(cacheKey, fresh, ttlSec);
+        await cacheSet(latestKey, fresh, 15*60); // 15분 폴백
+        data = fresh;
+        cacheMeta = { hit: false, ageMs: 0 };
       }
-    }
 
     const { temperature, humidity, windSpeed } = data;
 
@@ -426,7 +454,7 @@ export default async function handler(req, res) {
         refreshIntervalMs: 3600000,
         cache: {
           ...cacheMeta,
-          nextRefreshMs: msUntilNext10Min(),
+          nextRefreshMs: ttlToNext10m(),
           note: "다음 10분 경계까지의 예상 TTL(동적). 서버리스 환경에선 인스턴스별 캐시가 공유되지 않을 수 있습니다."
         },
         logFile: LOG_FILE,
@@ -470,9 +498,20 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error(err);
+    // 실패 시 latest 폴백
+    const last = await cacheGet(latestKey);
+    if (last) {
+      return res.status(200).json({
+        ok: true,
+        stale: true,
+        note: 'fallback_cache',
+        ...format(last, regionRaw, nx, ny, debug, compat, phrase)
+      });
+     }
+    
     return res.status(200).json({
       ok: false,
-      reason: 'internal_error',
+      reason: 'upstream_error',
       message: String(err?.message || err),
     });
   }

@@ -1,0 +1,283 @@
+중기 1번 — Redis 캐시 도입(공유 캐시 + 키전략 고도화)
+
+서버리스(또는 다중 인스턴스)에서 캐시 공유가 안 되는 걸 Redis로 해결하자. 캐시 키에 시간 요소를 포함해서 “정시 갱신”도 정확히 따라가게 만들 거야.
+
+1) 패키지 설치
+npm i ioredis
+
+2) lib/cache.js 추가
+// lib/cache.js
+import Redis from 'ioredis';
+
+// REDIS_URL 없으면 in-memory로 폴백
+const redisUrl = process.env.REDIS_URL || '';
+const client = redisUrl ? new Redis(redisUrl, { lazyConnect: true, maxRetriesPerRequest: 2 }) : null;
+
+const memory = new Map();
+
+export async function cacheGet(key) {
+  if (client) {
+    try {
+      if (!client.status || client.status === 'wait') await client.connect();
+      const s = await client.get(key);
+      return s ? JSON.parse(s) : null;
+    } catch { /* 폴백 */ }
+  }
+  const hit = memory.get(key);
+  if (!hit) return null;
+  if (Date.now() <= hit.expireAt) return hit.value;
+  memory.delete(key);
+  return null;
+}
+
+export async function cacheSet(key, value, ttlSec) {
+  if (client) {
+    try {
+      if (!client.status || client.status === 'wait') await client.connect();
+      await client.set(key, JSON.stringify(value), 'EX', Math.max(1, Math.floor(ttlSec)));
+      return;
+    } catch { /* 폴백 */ }
+  }
+  memory.set(key, { value, expireAt: Date.now() + ttlSec * 1000 });
+}
+
+export function closeCache() {
+  if (client && client.status === 'ready') client.quit().catch(()=>{});
+}
+
+3) /api/pt.js 캐시 사용부 교체
+
+키 전략: cacheKey = nx,ny,base_date,base_time
+→ 정시가 바뀌면 자동 미스가 나서 새 데이터 fetch.
+
+TTL: 다음 10분 경계까지 (지금 함수로 계산하던 값 재사용)
+
+-const CACHE_MAP = new Map();
+-import ... getCache/setCache ... (기존 함수 제거)
++import { cacheGet, cacheSet } from "../lib/cache.js";
+
+-const cacheKey = `${nx},${ny}`;
++const { base_date, base_time } = getUltraBaseDateTime();
++const cacheKey = `${nx},${ny},${base_date},${base_time}`;
+
+- let data;
+- let cacheMeta;
++ let data; let cacheMeta;
+
+- data = await fetchUltraNcst({ nx, ny });
+- setCache(cacheKey, data);
+- cacheMeta = { hit: false, ageMs: 0 };
++ const ttlMs = msUntilNext10Min();               // 기존 함수 재사용
++ const ttlSec = Math.max(60, Math.floor(ttlMs/1000));
++ const cached = await cacheGet(cacheKey);
++ if (cached) {
++   data = cached;
++   cacheMeta = { hit: true, ageMs: 0 };
++ } else {
++   data = await fetchUltraNcst({ nx, ny });
++   await cacheSet(cacheKey, data, ttlSec);
++   cacheMeta = { hit: false, ageMs: 0 };
++ }
+
+ // 오류 시 폴백 분기에서도 Redis 조회 사용
+- const last = CACHE_MAP.get(cacheKey);
++ const last = await cacheGet(cacheKey);
+
+
+forecast 엔드포인트(/api/pt-forecast.js)에도 동일 컨셉으로 적용 권장.
+
+4) 환경변수
+
+.env 또는 Vercel에 아래 추가:
+
+REDIS_URL=redis://default:password@host:6379/0
+
+5) 동작 확인
+# 1) 첫 호출(미스→저장)
+time curl -s "http://localhost:3000/api/pt?region=%EC%84%9C%EC%9A%B8%20%EA%B0%95%EB%82%A8%EA%B5%AC%20%EC%97%AD%EC%82%BC%EB%8F%99" | jq '.system.cache'
+# 2) 두 번째 즉시 호출(히트)
+time curl -s "http://localhost:3000/api/pt?region=%EC%84%9C%EC%9A%B8%20%EA%B0%95%EB%82%A8%EA%B5%AC%20%EC%97%AD%EC%82%BC%EB%8F%99" | jq '.system.cache'
+# => hit:true(또는 표시 필드에 히트), 속도 체감 OK
+
+그다음(중기 2번): 서킷 브레이커(간단형)
+
+네트워크/HTTP 레벨 장애가 연속되면 일정 시간 즉시 차단해서 불필요한 대기/쿼터 낭비를 막자.
+
+구현 위치: lib/http.js에 호스트 단위로 상태 저장.
+
+// lib/http.js
++const circuits = new Map(); // key: host, value: { state, fail, openedAt }
++const OPEN_MS = 60_000;     // 1분 오픈
++const FAIL_THRESHOLD = 3;
+
++function getHost(u){ try { return new URL(u).host; } catch { return 'default'; } }
+
+ export async function fetchWithRetry(url, opts = {}) {
+   ...
+   const attempt = async (n) => {
++    const host = getHost(url);
++    const c = circuits.get(host);
++    if (c && c.state === 'open' && Date.now() - c.openedAt < OPEN_MS) {
++      throw new Error(`CircuitOpen:${host}`);
++    }
+     ...
+     try {
+       const res = await fetch(url, { ...opts, signal: externalSignal ?? ac.signal });
+-      if (!res.ok && retryOn.includes(res.status) && n < retries) {
++      if (!res.ok && retryOn.includes(res.status) && n < retries) {
+         await new Promise(r => setTimeout(r, jitter(retryDelayBaseMs, n)));
+         return attempt(n+1);
+       }
++      // 성공 → 회로 닫기
++      circuits.set(host, { state:'closed', fail:0, openedAt:0 });
+       return res;
+     } catch (e) {
++      // 실패 카운트
++      const c0 = circuits.get(host) || { state:'closed', fail:0, openedAt:0 };
++      const fail = c0.fail + 1;
++      if (fail >= FAIL_THRESHOLD) {
++        circuits.set(host, { state:'open', fail, openedAt: Date.now() });
++      } else {
++        circuits.set(host, { ...c0, fail });
++      }
+       if (n < retries) {
+         await new Promise(r => setTimeout(r, jitter(retryDelayBaseMs, n)));
+         return attempt(n+1);
+       }
+       throw e;
+     } finally {
+       clearTimeout(t);
+     }
+   };
+   return attempt(0);
+ }
+
+
+테스트 방법:
+
+KMA_ULTRA_NCST_URL을 잠깐 https://example.invalid로 바꿔 3회 실패 유도 → 이후 즉시 CircuitOpen 에러. (테스트 끝나면 원복)
+
+요약
+
+지금 상태에서 다음 작업 진행 OK.
+
+먼저 ②·③ 점검 커맨드로 마지막 스모크만 찍고 → Redis 캐시 적용(위 코드) → 필요하면 서킷 브레이커까지.
+
+끝나면 **CI 테스트(위치해석·계산 유닛테스트)**와 OpenAPI-액션 스키마 정리로 넘어가자.
+
+결론부터: 네, 그 문서(중기.txt)대로 진행하되 딱 4가지만 보완해서 넣으면 끝내기 좋아요. 큰 방향은 그대로 맞습니다(공유 캐시→서킷 브레이커→CI) .
+
+지금 계획에 필요한 4가지 보완점
+
+캐시 키·TTL을 엔드포인트별 규칙에 맞춰 분리
+
+실황(nowcast /getUltraSrtNcst): key = nx,ny,base_date,base_time(정시) + 다음 10분 경계까지 TTL(이미 문서대로 OK).
+
+초단기예보(/getUltraSrtFcst): base_time이 hh30이므로 다음 “hh30 경계”까지 TTL로. (현재 “10분 경계”를 그대로 쓰면 갱신이 늦거나 빠질 수 있어요.)
+
+단기예보(/getVilageFcst): 발표가 02/05/08/11/14/17/20/23시라 다음 발표 시각까지 TTL.
+
+구현 팁:
+
+// lib/kma-ttl.js
+export const ttlToNext10m = () => 600000 - (Date.now() % 600000);
+export const ttlToNext30m = () => 1800000 - (Date.now() % 1800000);
+export function ttlToNextShortFcstIssue() { return ttlToNext30m(); }
+export function ttlToNextVilageIssue(now=new Date()) {
+  const hours=[2,5,8,11,14,17,20,23];
+  const h=now.getHours(), m=now.getMinutes();
+  let next = hours.find(x=> x>h || (x===h && m<1)) ?? hours[0]+24;
+  const nextDate = new Date(now);
+  nextDate.setHours(next,1,0,0); // +1분 버퍼
+  return Math.max(60*1000, nextDate-now);
+}
+
+
+그리고 각 핸들러에서 엔드포인트에 맞는 TTL 함수를 써주세요.
+
+Redis 옵션 소소한 안정화
+
+회사망/클라우드 모두 커버하려면:
+
+// lib/cache.js
+const redisUrl = process.env.REDIS_URL || '';
+const isTLS = redisUrl.startsWith('rediss://');
+const client = redisUrl
+  ? new Redis(redisUrl, {
+      lazyConnect: true,
+      maxRetriesPerRequest: 2,
+      ...(isTLS ? { tls: {} } : {})
+    })
+  : null;
+
+
+JSON 파싱 실패 방어를 살짝(깨진 값일 때 폴백):
+
+const s = await client.get(key);
+try { return s ? JSON.parse(s) : null; } catch { return null; }
+
+
+서킷 브레이커: 실패 조건·Half-Open 한 번만 허용
+
+문서안 그대로 시작하되(연속 3회 실패→1분 오픈) 실패 카운트는 네트워크/5xx/429/408만 올리세요. 404 같은 정상 오류엔 회로 열 필요가 없어요.
+
+1분 뒤 Half-Open으로 단 1회 테스트 → 성공 시 Close, 실패 시 다시 Open:
+
+// lib/http.js (핵심 차이점)
+const retryOn = opts.retryOn ?? [408,429,500,502,503,504];
+const isRetryable = (e,res) =>
+  (e && (e.name==='AbortError' || e.code || String(e).includes('fetch failed')))
+  || (res && retryOn.includes(res.status));
+
+// ...attempt()
+const c = circuits.get(host);
+if (c?.state==='open' && Date.now()-c.openedAt < OPEN_MS) {
+  throw new Error(`CircuitOpen:${host}`);
+}
+let res;
+try {
+  res = await fetch(url, { ...opts, signal: externalSignal ?? ac.signal });
+  if (!res.ok && retryOn.includes(res.status) && n < retries) { ... }
+  circuits.set(host, { state:'closed', fail:0, openedAt:0 });
+  return res;
+} catch (e) {
+  const c0 = circuits.get(host) || { state:'closed', fail:0, openedAt:0 };
+  if (isRetryable(e,res)) {
+    const fail = c0.fail + 1;
+    if (fail >= FAIL_THRESHOLD) circuits.set(host, { state:'open', fail, openedAt: Date.now() });
+    else circuits.set(host, { ...c0, fail });
+  }
+  if (n < retries) { ... } else { throw e; }
+}
+
+
+테스트는 문서에 적힌 대로 잘못된 URL로 3회 실패 유도 → 4번째 즉시 CircuitOpen 확인(끝나고 원복).
+
+무서버(invoker) + .env + 스킴 정리 유지
+
+scripts/invoke-api.mjs 상단 import 'dotenv/config'는 유지(이미 적용).
+
+URL 템플릿은 항상 한 줄(멀티라인 템플릿 금지) — 이전에 http :// 공백 이슈를 일으켰던 부분입니다.
+
+개발: KMA_SCHEME=http / 운영: 기본 https 로 안내(README·.env.example에 주석).
+
+적용 순서(짧게)
+
+lib/cache.js 추가(문서안 코드) + 위 TLS/rediss 옵션만 보완.
+
+/api/pt.js·/api/pt-forecast.js에 엔드포인트별 키·TTL 전략 적용(위 함수 사용) + cacheGet/cacheSet 교체.
+
+lib/http.js에 서킷 브레이커(보완 규칙 포함).
+
+scripts/invoke-api.mjs로 두 번 호출→2번째 빨라지는지 확인(캐시 히트).
+
+CI 워크플로(위치해석·지수 검증만) 추가.
+
+체크리스트 (통과 기준)
+
+실황 연속 2호출: ① hit:false → ② hit:true, p95 지연 감소 확인.
+
+초단기예보/단기예보도 각자 TTL 정책대로 정시/발표 주기에 맞춰 갱신.
+
+장애 유도 시: 3연속 실패 후 즉시 CircuitOpen → 캐시 폴백 또는 {ok:false, reason:'upstream_error'}를 HTTP 200으로 반환.
+
