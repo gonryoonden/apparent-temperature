@@ -2,14 +2,14 @@
 import { callVilageWithFallback } from "../lib/kmaForecast.js";
 import { perceivedTempKMA, levelByPT } from "../lib/ptCore.js";
 // region-resolver.js가 CommonJS(module.exports)라서 default import로 받아옵니다.
-import resolver from "../lib/region-resolver.js";
-const { resolveRegion } = resolver;
 
+if (!resolveRegion) throw new Error("resolveRegion not found in region-resolver.js");
+import { resolveRegion } from "../lib/region-resolver.js";
 export default async function handler(req, res) {
   try {
     // 입력 파라미터 통합: region 우선, 없으면 q
     const region = (req.query.region || req.body?.region || req.query.q || "").trim();
-    if (!region) return res.status(400).json({ ok:false, error:"region(또는 q) 필요" });
+    if (!region) return res.status(200).json({ ok:false, error:"region(또는 q) 필요" });
 
     // ① 선검사(정규화 → 법정→행정 → nx/ny)
     const r = resolveRegion(region);
@@ -19,7 +19,7 @@ export default async function handler(req, res) {
 
     // ② 실패시: 외부 API 호출하지 않고 제안만 반환
     if (!r.ok) {
-      return res.status(400).json({
+      return res.status(200).json({
         ok: false,
         reason: r.reason,          // 'NOT_FOUND' 등
         suggestions: r.suggestions // 후보 리스트
@@ -91,6 +91,6 @@ export default async function handler(req, res) {
     });
   } catch (e) {
     console.error(e);
-    return res.status(500).json({ ok:false, error:String(e) });
+    return res.status(200).json({ ok:false, reason:'internal_error' });
   }
 }

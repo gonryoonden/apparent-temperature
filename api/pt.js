@@ -20,6 +20,9 @@
  * - LOG_DIR         : 로그 디렉터리(기본 /tmp/logs)
  */
 
+import { fetchWithRetry } from "../lib/http.js";
+import { resolveRegion } from "../lib/region-resolver.js";
+if (!resolveRegion) throw new Error("resolveRegion not found in region-resolver.js");
 import fs from "fs";
 import fsp from "fs/promises";
 import path from "path";
@@ -253,7 +256,7 @@ async function fetchUltraNcst({ nx, ny }) {
  });
  const url = `${KMA_ULTRA_NCST_URL}?serviceKey=${rawKey}&${q.toString()}`;
 
-  const res = await fetch(url, { headers: { accept: "application/json" } });
+  const res = await fetchWithRetry(url, { headers: { accept: "application/json" }, timeoutMs: 3500, retries: 1 });
   if (!res.ok) {
     const errorText = await res.text();
     // eslint-disable-next-line no-console
@@ -327,36 +330,57 @@ function parseNumberOrNull(s) {
 export default async function handler(req, res) {
   try {
     const regionRaw = (getScalar(req.query.region) || "").trim();
-if (!regionRaw.length) {
-  return res.status(400).json({ ok:false, error:"region 쿼리가 비어 있습니다." });
-}
+    if (!regionRaw.length) {
+      return res.status(200).json({ ok: false, error: "region 쿼리가 비어 있습니다." });
+    }
     const threshold = parseNumberOrNull(getScalar(req.query.threshold));
     const phrase = parseBool(getScalar(req.query.phrase) || "false");
     const compat = (getScalar(req.query.compat) || "").toLowerCase(); // "rows" 지원
     const debug = parseBool(getScalar(req.query.debug) || "false");
 
-    const matchResult = findNxNy(regionRaw);
-    if (!matchResult.coords) {
-      const response = {
-        ok: false, 
-        error: `지역 매칭 실패: "${regionRaw}" (공식 법정동 명칭에 가깝게 입력)`
-      };
-      if (matchResult.suggestions && matchResult.suggestions.length > 0) {
-        response.suggestions = matchResult.suggestions;
-        response.message = `다음 지역명으로 다시 시도해보세요: ${matchResult.suggestions.join(', ')}`;
+    // ➊ 리졸버 우선 (법정→행정→nx,ny)
+    let nx, ny;
+    const r = resolveRegion(regionRaw);
+    if (r.ok) {
+      nx = r.nxny.nx;
+      ny = r.nxny.ny;
+    } else {
+      // ➋ 기존 휴리스틱 폴백
+      const matchResult = findNxNy(regionRaw);
+      if (!matchResult.coords) {
+        // Use suggestions from the resolver if available, otherwise from findNxNy
+        const suggestions = r.suggestions || matchResult.suggestions || [];
+        const response = {
+            ok: false,
+            error: `지역 매칭 실패: "${regionRaw}"`,
+            suggestions: suggestions
+        };
+        if (suggestions.length > 0) {
+            response.message = `다음 지역명으로 다시 시도해보세요: ${suggestions.join(', ')}`;
+        }
+        return res.status(200).json(response);
       }
-      return res.status(404).json(response);
+      ({ nx, ny } = matchResult.coords);
     }
-    const { nx, ny } = matchResult.coords;
-
     const cacheKey = `${nx},${ny}`;
-    const cached = getCache(cacheKey);
-    const data   = cached || (await fetchUltraNcst({ nx, ny }));
-    if (!cached) setCache(cacheKey, data);
-    // 캐시 메타(표기용)
-    const cacheMeta = cached
-      ? { hit: true,  ageMs: cached.cacheAgeMs }
-      : { hit: false, ageMs: 0 };
+    
+    let data;
+    let cacheMeta;
+
+    try {
+      data = await fetchUltraNcst({ nx, ny });
+      setCache(cacheKey, data);
+      cacheMeta = { hit: false, ageMs: 0 };
+    } catch (e) {
+      console.error(e);
+      const last = CACHE_MAP.get(cacheKey);
+      if (last && (Date.now() - last.savedAt < 15 * 60 * 1000)) {
+        data = { ...last, stale: true, note: 'fallback_cache' };
+        cacheMeta = { hit: true, ageMs: Date.now() - last.savedAt, stale: true };
+      } else {
+        return res.status(200).json({ ok: false, reason: 'upstream_error' });
+      }
+    }
 
     const { temperature, humidity, windSpeed } = data;
 
@@ -376,6 +400,7 @@ if (!regionRaw.length) {
     const nowISO = new Date().toISOString();
     const payload = {
       ok: true,
+      ...(data.stale && { stale: true, note: data.note }),
       region: regionRaw,
       grid: { nx, ny },
       observed: debug
@@ -384,7 +409,7 @@ if (!regionRaw.length) {
             base_date: data.base_date, base_time: data.base_time,
             temperature: data.temperature, humidity: data.humidity, windSpeed: data.windSpeed
           },
-          metrics: {
+      metrics: {
         apparentTemperature: apparent,
         level,
         ptFormula: PT_FORMULA,
@@ -399,86 +424,56 @@ if (!regionRaw.length) {
       },
       system: {
         refreshIntervalMs: 3600000,
-            cache: {
+        cache: {
           ...cacheMeta,
           nextRefreshMs: msUntilNext10Min(),
           note: "다음 10분 경계까지의 예상 TTL(동적). 서버리스 환경에선 인스턴스별 캐시가 공유되지 않을 수 있습니다."
-        },        
+        },
         logFile: LOG_FILE,
         ts: nowISO,
       },
     };
 
-    // ── 하위호환 스키마(옵션): ?compat=rows → 이전 rows 구조 추가
     if (compat === "rows") {
-      const legacy = {
+      payload.legacy = {
         place: regionRaw,
         date: data.base_date,
-        nx,
-        ny,
+        nx, ny,
         base_date: data.base_date,
         base_time: data.base_time,
-        rows:
-          apparent != null
-            ? [
-                {
-                  hour: data.base_time, // HH00
-                  Ta: temperature,
-                  RH: humidity,
-                  PT: apparent,
-                  level,
-                  action,
-                },
-              ]
-            : [],
+        rows: apparent != null ? [{
+          hour: data.base_time,
+          Ta: temperature, RH: humidity, PT: apparent, level, action,
+        }] : [],
       };
-      payload.legacy = legacy;
     }
 
-    // ── 디버그 모드: KMA 호출 메타(키 미노출) 첨부
     if (debug) {
       payload.debug = {
-        kmaMeta: {
-          base_date: data.base_date,
-          base_time: data.base_time,
-          nx,
-          ny,
-        },
+        kmaMeta: { base_date: data.base_date, base_time: data.base_time, nx, ny },
       };
     }
 
-    // 관리 기록 로깅
     await writeLogLine({
-      ts: nowISO,
-      region: regionRaw,
-      nx,
-      ny,
-      temperature,
-      humidity,
-      windSpeed,
-      apparentTemperature: apparent,
-      level,
-      action,
+      ts: nowISO, region: regionRaw, nx, ny,
+      temperature, humidity, windSpeed,
+      apparentTemperature: apparent, level, action,
     });
 
     if (phrase) {
-      const text =
-        apparent != null
-          ? `현재 ${regionRaw}의 기온 ${temperature}℃, 습도 ${humidity}%, 체감 ${apparent}℃(${level}). ${action}`
-          : `현재 ${regionRaw}의 실황 자료가 부족해 체감온도를 산출하지 못했습니다.`;
+      const text = apparent != null
+        ? `현재 ${regionRaw}의 기온 ${temperature}℃, 습도 ${humidity}%, 체감 ${apparent}℃(${level}). ${action}`
+        : `현재 ${regionRaw}의 실황 자료가 부족해 체감온도를 산출하지 못했습니다.`;
       return res.status(200).json({ ...payload, phrase: text });
     }
     return res.status(200).json(payload);
+
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.error(err);
-    const isKma = err?.name === "KmaApiError";
-    return res.status(500).json({
+    return res.status(200).json({
       ok: false,
-      error: isKma ? "KMA_API_ERROR" : "INTERNAL_ERROR",
+      reason: 'internal_error',
       message: String(err?.message || err),
-      source: isKma ? "KMA" : "SERVER",
-      code: isKma ? err.code : undefined,
     });
   }
 }
