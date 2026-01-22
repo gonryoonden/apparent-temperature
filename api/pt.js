@@ -67,6 +67,16 @@ function getUltraBaseDateTime(nowUTC = new Date()) {
   return { base_date: yyyymmdd(kst), base_time: `${pad2(kst.getUTCHours())}00` };
 }
 
+function toKstIsoFromBase(base_date, base_time) {
+  if (!base_date || !base_time) return null;
+  const yyyy = base_date.slice(0, 4);
+  const mm = base_date.slice(4, 6);
+  const dd = base_date.slice(6, 8);
+  const hh = base_time.slice(0, 2);
+  const mi = base_time.slice(2, 4);
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}+09:00`;
+}
+
 // ───────────────────────────────────────────────────────────────────────────────
 /** 지역명 매칭(findNxNy): 완전→부분→단어조합→접미(endsWith) 4단계 + 숫자 없는 동 정규화 */
 // ───────────────────────────────────────────────────────────────────────────────
@@ -270,7 +280,7 @@ function parseNumberOrNull(s) {
   return Number.isFinite(n) ? n : null;
 }
 
-function format(data, regionRaw, nx, ny, debug, compat, phrase) {
+function format(data, regionRaw, nx, ny, debug, compat, phrase, threshold, cacheMeta) {
   const { temperature, humidity, windSpeed } = data;
 
   let apparent = null;
@@ -287,6 +297,20 @@ function format(data, regionRaw, nx, ny, debug, compat, phrase) {
     threshold != null && apparent != null ? apparent >= threshold : null;
 
   const nowISO = new Date().toISOString();
+  const nextRefreshMs = ttlToNext10m();
+  const ttlSec = Math.max(60, Math.floor(nextRefreshMs / 1000));
+  const cacheInfo = {
+    hit: cacheMeta?.hit ?? true,
+    ageMs: cacheMeta?.ageMs ?? 0,
+    ttl: cacheMeta?.ttl ?? ttlSec,
+    nextRefreshMs: cacheMeta?.nextRefreshMs ?? nextRefreshMs,
+  };
+  const observedAtKst = toKstIsoFromBase(data.base_date, data.base_time);
+  const hazards = {
+    windRisk: typeof windSpeed === "number" ? windSpeed >= 10 : null,
+    snowRisk: null,
+    slipFreezeRisk: null,
+  };
   const payload = {
     ok: true,
     ...(data.stale && { stale: true, note: data.note }),
@@ -298,6 +322,7 @@ function format(data, regionRaw, nx, ny, debug, compat, phrase) {
           base_date: data.base_date, base_time: data.base_time,
           temperature: data.temperature, humidity: data.humidity, windSpeed: data.windSpeed
         },
+    observedAtKst,
     metrics: {
       apparentTemperature: apparent,
       level,
@@ -311,10 +336,13 @@ function format(data, regionRaw, nx, ny, debug, compat, phrase) {
       customThreshold: threshold,
       customThresholdExceeded: thresholdExceeded,
     },
+    hazards,
+    cache: cacheInfo,
     system: {
       refreshIntervalMs: 3600000,
       cache: {
-        nextRefreshMs: ttlToNext10m(),
+        ...cacheInfo,
+        nextRefreshMs: nextRefreshMs,
         note: "다음 10분 경계까지의 예상 TTL(동적). 서버리스 환경에선 인스턴스별 캐시가 공유되지 않을 수 있습니다."
       },
       logFile: LOG_FILE,
@@ -354,13 +382,13 @@ function format(data, regionRaw, nx, ny, debug, compat, phrase) {
 /** API 핸들러 */
 // ───────────────────────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
-  let latestKey, regionRaw, nx, ny, debug, compat, phrase;
+  let latestKey, regionRaw, nx, ny, debug, compat, phrase, threshold;
   try {
     regionRaw = (getScalar(req.query.region) || "").trim();
     if (!regionRaw.length) {
       return res.status(200).json({ ok: false, error: "region 쿼리가 비어 있습니다." });
     }
-    const threshold = parseNumberOrNull(getScalar(req.query.threshold));
+    threshold = parseNumberOrNull(getScalar(req.query.threshold));
     phrase = parseBool(getScalar(req.query.phrase) || "false");
     compat = (getScalar(req.query.compat) || "").toLowerCase(); // "rows" 지원
     debug = parseBool(getScalar(req.query.debug) || "false");
@@ -392,7 +420,8 @@ export default async function handler(req, res) {
     const { base_date, base_time } = getUltraBaseDateTime();
     const cacheKey = `${nx},${ny},ultra,${base_date}${base_time}`;
     latestKey = `${nx},${ny},ultra,latest`;
-    const ttlSec = Math.max(60, Math.floor(ttlToNext10m()/1000));
+    const nextRefreshMs = ttlToNext10m();
+    const ttlSec = Math.max(60, Math.floor(nextRefreshMs/1000));
  
     let data; let cacheMeta;
 
@@ -400,14 +429,14 @@ export default async function handler(req, res) {
       const cached = await cacheGet(cacheKey);
       if (cached) {
         data = cached;
-        cacheMeta = { hit: true, ageMs: 0 };
+        cacheMeta = { hit: true, ageMs: 0, ttl: ttlSec, nextRefreshMs };
       } else {
         // 2) 원본 호출 → 캐시 저장(+ latest)
         const fresh = await fetchUltraNcst({ nx, ny });
         await cacheSet(cacheKey, fresh, ttlSec);
         await cacheSet(latestKey, fresh, 15*60); // 15분 폴백
         data = fresh;
-        cacheMeta = { hit: false, ageMs: 0 };
+        cacheMeta = { hit: false, ageMs: 0, ttl: ttlSec, nextRefreshMs };
       }
 
     const { temperature, humidity, windSpeed } = data;
@@ -426,6 +455,12 @@ export default async function handler(req, res) {
       threshold != null && apparent != null ? apparent >= threshold : null;
 
     const nowISO = new Date().toISOString();
+    const observedAtKst = toKstIsoFromBase(data.base_date, data.base_time);
+    const hazards = {
+      windRisk: typeof windSpeed === "number" ? windSpeed >= 10 : null,
+      snowRisk: null,
+      slipFreezeRisk: null,
+    };
     const payload = {
       ok: true,
       ...(data.stale && { stale: true, note: data.note }),
@@ -437,6 +472,7 @@ export default async function handler(req, res) {
             base_date: data.base_date, base_time: data.base_time,
             temperature: data.temperature, humidity: data.humidity, windSpeed: data.windSpeed
           },
+      observedAtKst,
       metrics: {
         apparentTemperature: apparent,
         level,
@@ -450,11 +486,13 @@ export default async function handler(req, res) {
         customThreshold: threshold,
         customThresholdExceeded: thresholdExceeded,
       },
+      hazards,
+      cache: cacheMeta,
       system: {
         refreshIntervalMs: 3600000,
         cache: {
           ...cacheMeta,
-          nextRefreshMs: ttlToNext10m(),
+          nextRefreshMs: nextRefreshMs,
           note: "다음 10분 경계까지의 예상 TTL(동적). 서버리스 환경에선 인스턴스별 캐시가 공유되지 않을 수 있습니다."
         },
         logFile: LOG_FILE,
@@ -505,7 +543,7 @@ export default async function handler(req, res) {
         ok: true,
         stale: true,
         note: 'fallback_cache',
-        ...format(last, regionRaw, nx, ny, debug, compat, phrase)
+        ...format(last, regionRaw, nx, ny, debug, compat, phrase, threshold, { hit: true, ageMs: 0 })
       });
      }
     
