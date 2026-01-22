@@ -105,7 +105,25 @@ function buildFromMixOnly(rowsM) {
 async function main() {
   // 1) XLSX만 읽기
   const argMix = process.argv.find(a => a.startsWith("--mix="));
-  const fileM = argMix ? argMix.split("=")[1] : latestXlsx(["KIKmix*.xlsx", "KIKmix*.xls*"]);
+  let fileM;
+  if (argMix) {
+    fileM = argMix.split("=")[1];
+    if (!fileM || !fs.existsSync(fileM)) {
+      throw new Error(`Mix file not found: ${fileM || "(empty)"}`);
+    }
+  } else {
+    try {
+      fileM = latestXlsx(["KIKmix*.xlsx", "KIKmix*.xls*"]);
+    } catch (err) {
+      const outLegal = path.join("lib", "legal_to_admin.json");
+      const outIndex = path.join("lib", "legal_index_city_dong.json");
+      if (fs.existsSync(outLegal) && fs.existsSync(outIndex)) {
+        console.log("No KIKmix file found; using existing lib outputs.");
+        return;
+      }
+      throw err;
+    }
+  }
   console.log("MIX file:", fileM);
 
   const rowsM = loadXlsxRows(fileM);
