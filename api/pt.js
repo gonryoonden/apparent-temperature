@@ -403,10 +403,10 @@ export default async function handler(req, res) {
       if (r.reason === "NO_DONG" && resolverSuggestions.length > 0) {
         const response = {
             ok: false,
-            error: `?? ?? ??: "${regionRaw}"`,
+            error: `하위 행정구역을 지정해 주세요: "${regionRaw}"`,
             suggestions: resolverSuggestions
         };
-        response.message = `?? ????? ?? ??????: ${resolverSuggestions.join(', ')}`;
+        response.message = `다음 후보 중에서 선택해 주세요: ${resolverSuggestions.join(', ')}`;
         return res.status(200).json(response);
       }
       // ➋ 기존 휴리스틱 폴백
