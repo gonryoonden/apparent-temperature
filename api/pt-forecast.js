@@ -11,6 +11,10 @@ const yyyymmdd = d => `${d.getUTCFullYear()}${pad2(d.getUTCMonth()+1)}${pad2(d.g
 const yyyymmddhhmm = d => `${yyyymmdd(d)}${pad2(d.getUTCHours())}${pad2(d.getUTCMinutes())}`;
 const DT_RE = /^\d{12}$/;
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+const MISSING_THRESHOLD = 900; // KMA guide: values >=900 or <=-900 are missing.
+
+const isMissingNumber = (n) =>
+  Number.isFinite(n) && (n >= MISSING_THRESHOLD || n <= -MISSING_THRESHOLD);
 
 function toKstIsoFromDt(dt) {
   if (!dt || dt.length < 12) return null;
@@ -40,13 +44,15 @@ function msToDtKst(ms) {
 function numberOrNull(value) {
   if (value === null || value === undefined || value === "") return null;
   const n = Number(value);
-  return Number.isFinite(n) ? n : null;
+  if (!Number.isFinite(n) || isMissingNumber(n)) return null;
+  return n;
 }
 
 function numberOrStringOrNull(value) {
   if (value === null || value === undefined || value === "") return null;
   const n = Number(value);
-  return Number.isFinite(n) ? n : String(value);
+  if (Number.isFinite(n)) return isMissingNumber(n) ? null : n;
+  return String(value);
 }
 
 function clampRangeFilter(filter, maxHours = 120) {
@@ -153,8 +159,10 @@ function computeHazards(rows) {
   const ptyValues = rows.map(r => r.PTY).filter(isNum);
   const snoValues = rows.map(r => r.SNO).filter(isNum);
   const snoStrings = rows.map(r => r.SNO).filter(v => typeof v === "string" && v.trim());
+  const snowPtyCodes = new Set([2, 3, 6, 7]); // PTY=4 (shower) is precip, not snow.
+  const precipPtyCodes = new Set([1, 2, 3, 4, 5, 6, 7]);
   let snowRisk = null;
-  if (ptyValues.some(v => v === 2 || v === 3) || snoValues.some(v => v > 0)) {
+  if (ptyValues.some(v => snowPtyCodes.has(v)) || snoValues.some(v => v > 0)) {
     snowRisk = true;
   } else if (ptyValues.length || snoValues.length) {
     snowRisk = false;
@@ -170,7 +178,7 @@ function computeHazards(rows) {
   if (hasPt && hasNumericWetInputs) {
     slipFreezeRisk = rows.some(r =>
       isNum(r.PT) && r.PT <= 0 && (
-        (isNum(r.PTY) && r.PTY > 0) ||
+        (isNum(r.PTY) && precipPtyCodes.has(r.PTY)) ||
         (isNum(r.PCP) && r.PCP > 0) ||
         (isNum(r.SNO) && r.SNO > 0)
       )

@@ -239,7 +239,7 @@ async function fetchUltraNcst({ nx, ny }) {
   const items = json?.response?.body?.items?.item || [];
   const pick = (cat) => {
     const it = items.find(x => x.category === cat);
-    return it ? Number(it.obsrValue) : null;
+    return it ? kmaNumberOrNull(it.obsrValue) : null;
   };
   return {
     base_date, base_time,
@@ -278,6 +278,14 @@ function parseNumberOrNull(s) {
   if (s === null) return null;
   const n = Number(s);
   return Number.isFinite(n) ? n : null;
+}
+
+const MISSING_THRESHOLD = 900; // KMA guide: values >=900 or <=-900 are missing.
+function kmaNumberOrNull(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n >= MISSING_THRESHOLD || n <= -MISSING_THRESHOLD) return null;
+  return n;
 }
 
 function format(data, regionRaw, nx, ny, debug, compat, phrase, threshold, cacheMeta) {
