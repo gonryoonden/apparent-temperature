@@ -13,7 +13,7 @@
       "get": {
         "operationId": "getApparentTempNow",
         "summary": "현재 체감온도(실황) 조회",
-        "description": "region 또는 (lat,lon) 중 하나로 조회합니다.",
+        "description": "region 또는 (lat,lon) 중 하나로 조회합니다. If ok=false, suggestions may include candidate sub-areas for selection.",
         "parameters": [
           {
             "name": "region",
@@ -178,7 +178,7 @@
       "get": {
         "operationId": "getApparentTempForecast",
         "summary": "단기예보 시간대별 조회(기본 24h, 최대 120h)",
-        "description": "region 또는 (lat,lon) 중 하나로 조회합니다. 기본 범위는 24h이며 range 또는 from/to로 기간을 제한할 수 있습니다.",
+        "description": "region 또는 (lat,lon) 중 하나로 조회합니다. 기본 범위는 24h이며 range 또는 from/to로 기간을 제한할 수 있습니다. If ok=false, suggestions may include candidate sub-areas for selection.",
         "parameters": [
           { "name": "region", "in": "query", "required": false, "schema": { "type": "string" } },
           { "name": "lat", "in": "query", "required": false, "schema": { "type": "number" } },

@@ -399,11 +399,21 @@ export default async function handler(req, res) {
       nx = r.nxny.nx;
       ny = r.nxny.ny;
     } else {
+      const resolverSuggestions = r.suggestions || [];
+      if (r.reason === "NO_DONG" && resolverSuggestions.length > 0) {
+        const response = {
+            ok: false,
+            error: `?? ?? ??: "${regionRaw}"`,
+            suggestions: resolverSuggestions
+        };
+        response.message = `?? ????? ?? ??????: ${resolverSuggestions.join(', ')}`;
+        return res.status(200).json(response);
+      }
       // ➋ 기존 휴리스틱 폴백
       const matchResult = findNxNy(regionRaw);
       if (!matchResult.coords) {
         // Use suggestions from the resolver if available, otherwise from findNxNy
-        const suggestions = r.suggestions || matchResult.suggestions || [];
+        const suggestions = resolverSuggestions.length ? resolverSuggestions : (matchResult.suggestions || []);
         const response = {
             ok: false,
             error: `지역 매칭 실패: "${regionRaw}"`,
