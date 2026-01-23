@@ -119,8 +119,8 @@
                       "description": "현장 유의 플래그(특보 발효 아님)",
                       "properties": {
                         "windRisk": { "type": ["boolean", "null"], "description": "풍속(WSD) 10 m/s 이상 가능 시 true" },
-                        "snowRisk": { "type": ["boolean", "null"], "description": "PTY(2/3) 또는 SNO(수치) 존재 시 true" },
-                        "slipFreezeRisk": { "type": ["boolean", "null"], "description": "PT≤0 + (PTY/PCP/SNO 수치) 동시 만족 시 true" }
+                        "snowRisk": { "type": ["boolean", "null"], "description": "PTY(2/3/6/7) 또는 SNO(수치) 존재 시 true" },
+                        "slipFreezeRisk": { "type": ["boolean", "null"], "description": "PT≤0 + (PTY(1~7)/PCP/SNO 수치) 동시 만족 시 true" }
                       }
                     },
                     "cache": {
@@ -316,8 +316,8 @@
                       "description": "현장 유의 플래그(특보 발효 아님)",
                       "properties": {
                         "windRisk": { "type": ["boolean", "null"], "description": "풍속(WSD) 10 m/s 이상 가능 시 true" },
-                        "snowRisk": { "type": ["boolean", "null"], "description": "PTY(2/3) 또는 SNO(수치) 존재 시 true" },
-                        "slipFreezeRisk": { "type": ["boolean", "null"], "description": "PT≤0 + (PTY/PCP/SNO 수치) 동시 만족 시 true" }
+                        "snowRisk": { "type": ["boolean", "null"], "description": "PTY(2/3/6/7) 또는 SNO(수치) 존재 시 true" },
+                        "slipFreezeRisk": { "type": ["boolean", "null"], "description": "PT≤0 + (PTY(1~7)/PCP/SNO 수치) 동시 만족 시 true" }
                       }
                     },
                     "evidence": {

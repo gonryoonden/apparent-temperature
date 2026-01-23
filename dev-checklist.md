@@ -64,8 +64,8 @@
 
 - 응답에 `hazards`(또는 `advisories`) 블록 신설(실황/예보 공통 가능)
   - `windRisk`: boolean|null (WSD/풍속이 특정 수준 이상일 때 true, 근거는 “기준 초과 가능” 수준)
-  - `snowRisk`: boolean|null (PTY가 눈/비·눈 또는 SNO 존재 시)
-  - `slipFreezeRisk`: boolean|null (PT 낮음 + 강수/습윤 시사값 있을 때)
+  - `snowRisk`: boolean|null (PTY 2/3/6/7 or SNO>0 => true; PTY=4 is precip-only)
+  - `slipFreezeRisk`: boolean|null (PT≤0 + PTY(1~7)/PCP/SNO numeric evidence)
 - 단, 이름을 `advisoryIssued` 같은 “발효” 뉘앙스로 두지 말고 `risk/possible` 계열로 명명
 
 이유
