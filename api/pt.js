@@ -1,6 +1,6 @@
 /**
  * /api/pt.js
- * 체감온도(여름, KMA2016) + 초단기실황(getUltraSrtNcst) 기반 실시간 안전경보 API
+ * 체감온도(여름, ) + 초단기실황(getUltraSrtNcst) 기반 실시간 안전경보 API
  *
  * 포함 기능
  * 1) 데이터 소스 전환: getVilageFcst(3시간) → getUltraSrtNcst(1시간, 실황)
@@ -183,21 +183,8 @@ function findNxNy(input) {
 }
 
 // ───────────────────────────────────────────────────────────────────────────────
-/** 체감온도 계산(KMA2016, 여름) + 등급/조치 */
+/** 체감온도 계산(, 여름) + 등급/조치 */
 // ───────────────────────────────────────────────────────────────────────────────
-function perceivedTempKMA(Ta, RH) {
-  // Stull 근사 Tw (습구온도)
-  const Tw =
-    Ta * Math.atan(0.151977 * Math.sqrt(RH + 8.313659)) +
-    Math.atan(Ta + RH) -
-    Math.atan(RH - 1.676331) +
-    0.00391838 * Math.pow(RH, 1.5) * Math.atan(0.023101 * RH) -
-    4.686035;
-  // KMA 2016 apparent temperature (여름)
-  const PT =
-    -0.2442 + 0.55399 * Tw + 0.45535 * Ta - 0.0022 * Tw * Tw + 0.00278 * Tw * Ta + 3.0;
-  return Math.round(PT * 10) / 10; // 소수1자리
-}
 
 function windChillC(Ta, vMs) {
   if (!Number.isFinite(Ta)) return null;
@@ -211,13 +198,6 @@ function windChillC(Ta, vMs) {
   return Ta;
 }
 
-function levelByPT(pt) {
-  if (pt >= 40) return "위험";
-  if (pt >= 38) return "경고";
-  if (pt >= 35) return "주의";
-  if (pt >= 32) return "관심";
-  return "정상";
-}
 
 const LEGAL_MIN_PT = 31; // 폭염작업 법적 기준(체감온도 31℃ 이상)
 
