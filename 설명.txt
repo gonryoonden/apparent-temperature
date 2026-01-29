@@ -1,7 +1,0 @@
-vercel.json에 크론 추가(예: 매일 06:10 KST) + KV 연결 → 사전계산/캐시.
-My GPTs에 openapi.json 등록 후, 아침마다 요약 푸시 프롬프트 작성(예: “오늘 체감온도 최고·최저와 행동요령을 한 줄로 요약”).
-[정책 요약]
-- 5~9월(KST): 생활기상지수 SenTa만 사용, 실패 시 apparentTemperature=null + ptSource=FALLBACK/ptDefinition=AIR_TEMP_ONLY/ptLabel
-- 10~4월(KST): Wind Chill 고정(조건 미충족 시 apparentTemperature=Ta)
-- level은 항상 null
-
