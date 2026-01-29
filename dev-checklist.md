@@ -23,6 +23,21 @@
 - 결측값 발생 시 null 유지(추정 금지) 여부
 - 예보 `hours[]`에서 특정 시간대 누락/정렬 깨짐 여부
 
+
+### 1-3-1. 여름 생활기상지수 연동 점검
+
+- 5~9월: 생활기상지수(SenTa)만 사용
+- 실패/빈값 시 apparentTemperature=null + ptSource=FALLBACK/ptDefinition=AIR_TEMP_ONLY/ptLabel
+- 예측값 선택 규칙: 현재 시각 이후 가장 가까운 시간
+- level은 항상 null
+
+### 1-3-2. 겨울 Wind Chill 정책 점검
+
+- 10~4월: Wind Chill 고정(조건 미충족 시 apparentTemperature=Ta)
+- 조건: Ta ≤ 10°C AND V ≥ 1.3 m/s
+- ptSource=WIND_CHILL, ptDefinition=WCET_2001
+- level은 항상 null
+
 ### 1-4. 캐시/폴백(stale)와 에러 응답 일관성
 
 - stale이 언제 true가 되는지(업스트림 실패 시 캐시 폴백 등)

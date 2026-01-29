@@ -24,6 +24,7 @@ import { fetchWithRetry } from "../lib/http.js";
 import { cacheGet, cacheSet } from "../lib/cache.js";
 import { ttlToNext10m } from "../lib/kma-ttl.js";
 import { resolveRegion } from "../lib/region-resolver.js";
+import { fetchSenTaWithFallback, buildSenTaSeries, pickNearestFuture, toKstIsoFromMs, isSummerSeason } from "../lib/livingIndex.js";
 import fs from "fs";
 import fsp from "fs/promises";
 import path from "path";
@@ -32,6 +33,12 @@ import { normalizeServiceKey } from "../lib/kmaKey.js";
 const nxnyDB = JSON.parse(
   readFileSync(new URL("../lib/nxny_map.json", import.meta.url), "utf-8")
 );
+let livingAreaMap = { byAdminKey: {}, byNxNy: {} };
+try {
+  livingAreaMap = JSON.parse(
+    readFileSync(new URL("../lib/living_area_map.json", import.meta.url), "utf-8")
+  );
+} catch { /* optional */ }
 
 // ───────────────────────────────────────────────────────────────────────────────
 // 상수 및 운영 파라미터
@@ -47,10 +54,15 @@ export const REFRESH_INTERVAL_MS = 60 * 60 * 1000;
 // 로그 저장 경로: 서버리스 쓰기 보장 디렉터리 우선(/tmp), 없으면 cwd/logs
 const LOG_DIR = process.env.LOG_DIR || "/tmp/logs";
 const LOG_FILE = path.join(LOG_DIR, "pt_log.jsonl");
+const PT_DEF_LIVING = "SEN_TA";
+const PT_DEF_WIND = "WCET_2001";
+const PT_DEF_AIR = "AIR_TEMP_ONLY";
+const PT_SOURCE_LIVING = "LIVING_IDX";
+const PT_SOURCE_WIND = "WIND_CHILL";
+const PT_SOURCE_FALLBACK = "FALLBACK";
+const LIVING_REQUEST_CODE = "A41";
 
 // 계산식 메타(하위호환 검증 및 가시화)
-const PT_FORMULA = "KMA2016"; // 체감온도 계산모델 식별자
-const PT_EPSILON = 0.1;       // 허용 오차(동등성 검증 가이드)
 
 // ───────────────────────────────────────────────────────────────────────────────
 /** 시간 유틸 (KST, base_date/base_time 계산: 분<10 이면 직전시) */
@@ -187,6 +199,18 @@ function perceivedTempKMA(Ta, RH) {
   return Math.round(PT * 10) / 10; // 소수1자리
 }
 
+function windChillC(Ta, vMs) {
+  if (!Number.isFinite(Ta)) return null;
+  const v = Number(vMs);
+  if (Number.isFinite(v) && Ta <= 10 && v >= 1.3) {
+    const vKmh = v * 3.6;
+    const pow = Math.pow(vKmh, 0.16);
+    const wct = 13.12 + 0.6215 * Ta - 11.37 * pow + 0.3965 * Ta * pow;
+    return Math.round(wct * 10) / 10;
+  }
+  return Ta;
+}
+
 function levelByPT(pt) {
   if (pt >= 40) return "위험";
   if (pt >= 38) return "경고";
@@ -290,17 +314,28 @@ function kmaNumberOrNull(value) {
 
 function format(data, regionRaw, nx, ny, debug, compat, phrase, threshold, cacheMeta) {
   const { temperature, humidity, windSpeed } = data;
+  const now = new Date();
+  const isSummer = isSummerSeason(now);
 
   let apparent = null;
   let level = null;
   let action = null;
-  if (temperature != null && humidity != null) {
-    apparent = perceivedTempKMA(temperature, humidity);
-    level = levelByPT(apparent);
-    action = actionByLevel(level, apparent);
+  let ptSource = isSummer ? PT_SOURCE_FALLBACK : PT_SOURCE_WIND;
+  let ptDefinition = isSummer ? PT_DEF_AIR : PT_DEF_WIND;
+  let ptAtKst = null;
+
+  if (!isSummer) {
+    apparent = windChillC(temperature, windSpeed);
   }
 
-  const legalThresholdMet = apparent != null ? apparent >= LEGAL_MIN_PT : null;
+  const ptLabel = ptSource === PT_SOURCE_FALLBACK && apparent == null
+    ? "체감온도 데이터 없음(기온 참고)"
+    : null;
+  const ptFormula = ptDefinition;
+  const ptEpsilon = null;
+
+  const legalThresholdMet =
+    ptSource === PT_SOURCE_LIVING && apparent != null ? apparent >= LEGAL_MIN_PT : null;
   const thresholdExceeded =
     threshold != null && apparent != null ? apparent >= threshold : null;
 
@@ -314,6 +349,7 @@ function format(data, regionRaw, nx, ny, debug, compat, phrase, threshold, cache
     nextRefreshMs: cacheMeta?.nextRefreshMs ?? nextRefreshMs,
   };
   const observedAtKst = toKstIsoFromBase(data.base_date, data.base_time);
+  ptAtKst = observedAtKst;
   const hazards = {
     windRisk: typeof windSpeed === "number" ? windSpeed >= 10 : null,
     snowRisk: null,
@@ -334,8 +370,12 @@ function format(data, regionRaw, nx, ny, debug, compat, phrase, threshold, cache
     metrics: {
       apparentTemperature: apparent,
       level,
-      ptFormula: PT_FORMULA,
-      ptEpsilon: PT_EPSILON,
+      ptFormula,
+      ptEpsilon,
+      ptSource,
+      ptDefinition,
+      ptAtKst,
+      ...(ptLabel ? { ptLabel } : {}),
     },
     actions: {
       legalMinPT: LEGAL_MIN_PT,
@@ -351,7 +391,7 @@ function format(data, regionRaw, nx, ny, debug, compat, phrase, threshold, cache
       cache: {
         ...cacheInfo,
         nextRefreshMs: nextRefreshMs,
-        note: "다음 10분 경계까지의 예상 TTL(동적). 서버리스 환경에선 인스턴스별 캐시가 공유되지 않을 수 있습니다."
+        note: "?전?바?부 10분 ?바?부?? 반?환 TTL(동?자). 서?버리?스 ?행?지?선 ?인스?턴?스버? 캐시?가 ?번?지 ?않?을 ?수 ?있?습?니?다."
       },
       logFile: LOG_FILE,
       ts: nowISO,
@@ -379,18 +419,24 @@ function format(data, regionRaw, nx, ny, debug, compat, phrase, threshold, cache
   }
 
   if (phrase) {
-    payload.phrase = apparent != null
-      ? `현재 ${regionRaw}의 기온 ${temperature}℃, 습도 ${humidity}%, 체감 ${apparent}℃(${level}). ${action}`
-      : `현재 ${regionRaw}의 실황 자료가 부족해 체감온도를 산출하지 못했습니다.`;
+    if (apparent != null) {
+      const levelPart = level ? `(${level})` : "";
+      const actionPart = action ? ` ${action}` : "";
+      payload.phrase = `현재 ${regionRaw}의 기온 ${temperature}?, 습도 ${humidity}%, 체감 ${apparent}?${levelPart}.${actionPart}`.trim();
+    } else {
+      const label = ptLabel ? ` ${ptLabel}` : "";
+      payload.phrase = `현재 ${regionRaw}의 실황 자료가 부족해 체감온도를 산출하지 못했습니다.${label}`.trim();
+    }
   }
   return payload;
 }
+
 
 // ───────────────────────────────────────────────────────────────────────────────
 /** API 핸들러 */
 // ───────────────────────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
-  let latestKey, regionRaw, nx, ny, debug, compat, phrase, threshold;
+  let latestKey, regionRaw, nx, ny, areaNo, debug, compat, phrase, threshold;
   try {
     regionRaw = (getScalar(req.query.region) || "").trim();
     if (!regionRaw.length) {
@@ -406,6 +452,7 @@ export default async function handler(req, res) {
     if (r.ok) {
       nx = r.nxny.nx;
       ny = r.nxny.ny;
+      areaNo = r.areaNo || null;
     } else {
       const resolverSuggestions = r.suggestions || [];
       if (r.reason === "NO_DONG" && resolverSuggestions.length > 0) {
@@ -433,6 +480,7 @@ export default async function handler(req, res) {
         return res.status(200).json(response);
       }
       ({ nx, ny } = matchResult.coords);
+      areaNo = livingAreaMap?.byNxNy?.[`${nx},${ny}`] || null;
     }
     // 캐시 키 전략: nx,ny + 발표정시
     const { base_date, base_time } = getUltraBaseDateTime();
@@ -458,22 +506,58 @@ export default async function handler(req, res) {
       }
 
     const { temperature, humidity, windSpeed } = data;
+    const now = new Date();
+    const observedAtKst = toKstIsoFromBase(data.base_date, data.base_time);
+    const isSummer = isSummerSeason(now);
 
     let apparent = null;
     let level = null;
     let action = null;
-    if (temperature != null && humidity != null) {
-      apparent = perceivedTempKMA(temperature, humidity);
-      level = levelByPT(apparent);
-      action = actionByLevel(level, apparent);
+    let ptSource = isSummer ? PT_SOURCE_FALLBACK : PT_SOURCE_WIND;
+    let ptDefinition = isSummer ? PT_DEF_AIR : PT_DEF_WIND;
+    let ptAtKst = observedAtKst;
+
+    if (isSummer) {
+      if (areaNo) {
+        try {
+          const living = await fetchSenTaWithFallback({
+            areaNo,
+            requestCode: LIVING_REQUEST_CODE,
+            now,
+          });
+          if (living?.ok && living.items?.length) {
+            const series = buildSenTaSeries(living.items[0], living.baseTime);
+            // Use nearest future forecast value from now
+            const picked = pickNearestFuture(series, now);
+            if (picked && Number.isFinite(picked.value)) {
+              apparent = picked.value;
+              ptSource = PT_SOURCE_LIVING;
+              ptDefinition = PT_DEF_LIVING;
+              ptAtKst = toKstIsoFromMs(picked.dtMs);
+            }
+          }
+        } catch (e) {
+          // Summer: do not compute when living index fails
+        }
+      }
+    } else {
+      apparent = windChillC(temperature, windSpeed);
+      ptSource = PT_SOURCE_WIND;
+      ptDefinition = PT_DEF_WIND;
     }
 
-    const legalThresholdMet = apparent != null ? apparent >= LEGAL_MIN_PT : null;
+    const ptLabel = ptSource === PT_SOURCE_FALLBACK && apparent == null
+    ? "체감온도 데이터 없음(기온 참고)"
+      : null;
+    const ptFormula = ptDefinition;
+    const ptEpsilon = null;
+
+    const legalThresholdMet =
+      ptSource === PT_SOURCE_LIVING && apparent != null ? apparent >= LEGAL_MIN_PT : null;
     const thresholdExceeded =
       threshold != null && apparent != null ? apparent >= threshold : null;
 
     const nowISO = new Date().toISOString();
-    const observedAtKst = toKstIsoFromBase(data.base_date, data.base_time);
     const hazards = {
       windRisk: typeof windSpeed === "number" ? windSpeed >= 10 : null,
       snowRisk: null,
@@ -494,8 +578,12 @@ export default async function handler(req, res) {
       metrics: {
         apparentTemperature: apparent,
         level,
-        ptFormula: PT_FORMULA,
-        ptEpsilon: PT_EPSILON,
+        ptFormula,
+        ptEpsilon,
+        ptSource,
+        ptDefinition,
+        ptAtKst,
+        ...(ptLabel ? { ptLabel } : {}),
       },
       actions: {
         legalMinPT: LEGAL_MIN_PT,
@@ -545,11 +633,17 @@ export default async function handler(req, res) {
     });
 
     if (phrase) {
-      const text = apparent != null
-        ? `현재 ${regionRaw}의 기온 ${temperature}℃, 습도 ${humidity}%, 체감 ${apparent}℃(${level}). ${action}`
-        : `현재 ${regionRaw}의 실황 자료가 부족해 체감온도를 산출하지 못했습니다.`;
+      if (apparent != null) {
+        const levelPart = level ? `(${level})` : "";
+        const actionPart = action ? ` ${action}` : "";
+        const text = `현재 ${regionRaw}의 기온 ${temperature}?, 습도 ${humidity}%, 체감 ${apparent}?${levelPart}.${actionPart}`.trim();
+        return res.status(200).json({ ...payload, phrase: text });
+      }
+      const label = ptLabel ? ` ${ptLabel}` : "";
+      const text = `현재 ${regionRaw}의 실황 자료가 부족해 체감온도를 산출하지 못했습니다.${label}`.trim();
       return res.status(200).json({ ...payload, phrase: text });
     }
+
     return res.status(200).json(payload);
 
   } catch (err) {

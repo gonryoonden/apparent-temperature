@@ -2,11 +2,13 @@
   "openapi": "3.1.0",
   "info": {
     "title": "KMA Apparent Temperature API",
-    "description": "기상청 초단기실황/단기예보 기반 체감온도 조회 API",
+    "description": "???? ?? API (5~9?: ?????? SenTa ??, 10~4?: Wind Chill ??)",
     "version": "1.2.0"
   },
   "servers": [
-    { "url": "https://apparent-temperature.vercel.app" }
+    {
+      "url": "https://apparent-temperature.vercel.app"
+    }
   ],
   "paths": {
     "/api/pt": {
@@ -20,49 +22,69 @@
             "in": "query",
             "required": false,
             "description": "조회 지역명 (예: '서울특별시 강남구 역삼동'). region 또는 (lat,lon) 중 하나는 반드시 제공",
-            "schema": { "type": "string", "minLength": 1 }
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
           },
           {
             "name": "lat",
             "in": "query",
             "required": false,
             "description": "위도 (region 미지정 시 lon과 함께 필수)",
-            "schema": { "type": "number" }
+            "schema": {
+              "type": "number"
+            }
           },
           {
             "name": "lon",
             "in": "query",
             "required": false,
             "description": "경도 (region 미지정 시 lat과 함께 필수)",
-            "schema": { "type": "number" }
+            "schema": {
+              "type": "number"
+            }
           },
           {
             "name": "threshold",
             "in": "query",
             "required": false,
             "description": "사용자 임계값(℃). apparentTemperature ≥ threshold 여부를 함께 반환",
-            "schema": { "type": "number" }
+            "schema": {
+              "type": "number"
+            }
           },
           {
             "name": "phrase",
             "in": "query",
             "required": false,
             "description": "true면 자연어 요약 문장을 함께 반환",
-            "schema": { "type": "boolean", "default": false }
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
           },
           {
             "name": "compat",
             "in": "query",
             "required": false,
             "description": "구버전(rows) 호환 응답 포함",
-            "schema": { "type": "string", "enum": ["rows"] }
+            "schema": {
+              "type": "string",
+              "enum": [
+                "rows"
+              ]
+            }
           },
           {
             "name": "debug",
             "in": "query",
             "required": false,
             "description": "true면 디버그 메타 포함(민감정보 제외)",
-            "schema": { "type": "boolean", "default": false }
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
           }
         ],
         "responses": {
@@ -72,79 +94,249 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["ok", "region", "grid", "observed", "metrics", "actions", "system"],
+                  "required": [
+                    "ok",
+                    "region",
+                    "grid",
+                    "observed",
+                    "metrics",
+                    "actions",
+                    "system"
+                  ],
                   "properties": {
-                    "ok": { "type": "boolean", "example": true },
-                    "stale": { "type": "boolean", "description": "캐시 폴백 여부", "example": false },
-                    "note": { "type": "string", "nullable": true, "example": "fallback_cache" },
-                    "region": { "type": "string", "example": "서울특별시 강남구 역삼동" },
+                    "ok": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "stale": {
+                      "type": "boolean",
+                      "description": "캐시 폴백 여부",
+                      "example": false
+                    },
+                    "note": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "fallback_cache"
+                    },
+                    "region": {
+                      "type": "string",
+                      "example": "서울특별시 강남구 역삼동"
+                    },
                     "grid": {
                       "type": "object",
-                      "required": ["nx", "ny"],
+                      "required": [
+                        "nx",
+                        "ny"
+                      ],
                       "properties": {
-                        "nx": { "type": "integer", "example": 61 },
-                        "ny": { "type": "integer", "example": 125 }
+                        "nx": {
+                          "type": "integer",
+                          "example": 61
+                        },
+                        "ny": {
+                          "type": "integer",
+                          "example": 125
+                        }
                       }
                     },
                     "observed": {
                       "type": "object",
-                      "required": ["base_date", "base_time"],
+                      "required": [
+                        "base_date",
+                        "base_time"
+                      ],
                       "properties": {
-                        "base_date": { "type": "string", "example": "20250827" },
-                        "base_time": { "type": "string", "example": "1100" },
-                        "temperature": { "type": "number", "example": 29.9 },
-                        "humidity": { "type": "number", "example": 55 },
-                        "windSpeed": { "type": "number", "example": 2.0 }
+                        "base_date": {
+                          "type": "string",
+                          "example": "20250827"
+                        },
+                        "base_time": {
+                          "type": "string",
+                          "example": "1100"
+                        },
+                        "temperature": {
+                          "type": "number",
+                          "example": 29.9
+                        },
+                        "humidity": {
+                          "type": "number",
+                          "example": 55
+                        },
+                        "windSpeed": {
+                          "type": "number",
+                          "example": 2.0
+                        }
                       }
                     },
-                    "observedAtKst": { "type": "string", "description": "관측 시각(KST, ISO8601)", "example": "2026-01-21T10:00+09:00" },
+                    "observedAtKst": {
+                      "type": "string",
+                      "description": "관측 시각(KST, ISO8601)",
+                      "example": "2026-01-21T10:00+09:00"
+                    },
                     "metrics": {
                       "type": "object",
                       "properties": {
-                        "apparentTemperature": { "type": ["number", "null"], "example": 29.9 },
-                        "level": { "type": ["string", "null"], "enum": ["정상", "관심", "주의", "경고", "위험", null], "description": "KMA2016(하절기) 체감온도 등급" },
-                        "ptFormula": { "type": "string", "example": "KMA2016" }
+                        "apparentTemperature": {
+                          "type": [
+                            "number",
+                            "null"
+                          ],
+                          "example": 29.9
+                        },
+                        "level": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "?? ?? null (??/?? ?? ?? ?? ?? ?)"
+                        },
+                        "ptFormula": {
+                          "type": "string",
+                          "description": "ptDefinition? ??"
+                        },
+                        "ptSource": {
+                          "type": "string",
+                          "enum": [
+                            "LIVING_IDX",
+                            "WIND_CHILL",
+                            "FALLBACK"
+                          ],
+                          "description": "???? ?? ??"
+                        },
+                        "ptDefinition": {
+                          "type": "string",
+                          "enum": [
+                            "SEN_TA",
+                            "WCET_2001",
+                            "AIR_TEMP_ONLY"
+                          ],
+                          "description": "???? ??/??"
+                        },
+                        "ptAtKst": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "체감온도 기준 시각(KST, ISO8601)"
+                        },
+                        "ptLabel": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "체감온도 데이터 없음 등 라벨"
+                        },
+                        "ptEpsilon": {
+                          "type": [
+                            "number",
+                            "null"
+                          ],
+                          "description": "?? null"
+                        }
                       }
                     },
                     "actions": {
                       "type": "object",
                       "properties": {
-                        "legalMinPT": { "type": "number", "example": 31 },
-                        "legalThresholdMet": { "type": ["boolean", "null"], "example": false },
-                        "suggestedAction": { "type": ["string", "null"], "example": "정상: 물·그늘·휴식 준비상태 유지…" }
+                        "legalMinPT": {
+                          "type": "number",
+                          "example": 31
+                        },
+                        "legalThresholdMet": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ],
+                          "example": false
+                        },
+                        "suggestedAction": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "example": "정상: 물·그늘·휴식 준비상태 유지…"
+                        }
                       }
                     },
                     "hazards": {
-                      "type": ["object", "null"],
+                      "type": [
+                        "object",
+                        "null"
+                      ],
                       "description": "현장 유의 플래그(특보 발효 아님)",
                       "properties": {
-                        "windRisk": { "type": ["boolean", "null"], "description": "풍속(WSD) 10 m/s 이상 가능 시 true" },
-                        "snowRisk": { "type": ["boolean", "null"], "description": "PTY(2/3/6/7) 또는 SNO(수치) 존재 시 true" },
-                        "slipFreezeRisk": { "type": ["boolean", "null"], "description": "PT≤0 + (PTY(1~7)/PCP/SNO 수치) 동시 만족 시 true" }
+                        "windRisk": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ],
+                          "description": "풍속(WSD) 10 m/s 이상 가능 시 true"
+                        },
+                        "snowRisk": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ],
+                          "description": "PTY(2/3/6/7) 또는 SNO(수치) 존재 시 true"
+                        },
+                        "slipFreezeRisk": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ],
+                          "description": "PT≤0 + (PTY(1~7)/PCP/SNO 수치) 동시 만족 시 true"
+                        }
                       }
                     },
                     "cache": {
                       "type": "object",
                       "description": "캐시 메타(상단)",
                       "properties": {
-                        "hit": { "type": "boolean", "example": true },
-                        "ageMs": { "type": "integer", "example": 0 },
-                        "nextRefreshMs": { "type": "integer" },
-                        "ttl": { "type": "integer", "description": "남은 TTL(sec)", "example": 540 }
+                        "hit": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "ageMs": {
+                          "type": "integer",
+                          "example": 0
+                        },
+                        "nextRefreshMs": {
+                          "type": "integer"
+                        },
+                        "ttl": {
+                          "type": "integer",
+                          "description": "남은 TTL(sec)",
+                          "example": 540
+                        }
                       }
                     },
                     "system": {
                       "type": "object",
                       "properties": {
-                        "refreshIntervalMs": { "type": "integer", "example": 3600000 },
+                        "refreshIntervalMs": {
+                          "type": "integer",
+                          "example": 3600000
+                        },
                         "cache": {
                           "type": "object",
                           "description": "legacy mirror(상단 cache와 동일)",
                           "properties": {
-                            "hit": { "type": "boolean", "example": true },
-                            "ageMs": { "type": "integer", "example": 1234 },
-                            "nextRefreshMs": { "type": "integer" },
-                            "ttl": { "type": "integer", "description": "남은 TTL(sec)", "example": 540 }
+                            "hit": {
+                              "type": "boolean",
+                              "example": true
+                            },
+                            "ageMs": {
+                              "type": "integer",
+                              "example": 1234
+                            },
+                            "nextRefreshMs": {
+                              "type": "integer"
+                            },
+                            "ttl": {
+                              "type": "integer",
+                              "description": "남은 TTL(sec)",
+                              "example": 540
+                            }
                           }
                         }
                       }
@@ -155,22 +347,44 @@
                       "items": {
                         "type": "object",
                         "properties": {
-                          "ruleId": { "type": "string", "example": "WINTER_5_RULES" },
-                          "doc": { "type": "string", "example": "동절기 길잡이" },
-                          "page": { "type": "integer", "example": 5 }
+                          "ruleId": {
+                            "type": "string",
+                            "example": "WINTER_5_RULES"
+                          },
+                          "doc": {
+                            "type": "string",
+                            "example": "동절기 길잡이"
+                          },
+                          "page": {
+                            "type": "integer",
+                            "example": 5
+                          }
                         }
                       }
                     },
-                    "phrase": { "type": "string", "description": "phrase=true일 때만 포함" },
-                    "legacy": { "type": "object", "nullable": true, "description": "compat=rows 사용 시 포함" }
+                    "phrase": {
+                      "type": "string",
+                      "description": "phrase=true일 때만 포함"
+                    },
+                    "legacy": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "compat=rows 사용 시 포함"
+                    }
                   }
                 }
               }
             }
           },
-          "400": { "description": "요청 형식 오류" },
-          "404": { "description": "지역 매칭 실패" },
-          "500": { "description": "서버/외부 API 오류" }
+          "400": {
+            "description": "요청 형식 오류"
+          },
+          "404": {
+            "description": "지역 매칭 실패"
+          },
+          "500": {
+            "description": "서버/외부 API 오류"
+          }
         }
       }
     },
@@ -180,38 +394,87 @@
         "summary": "단기예보 시간대별 조회(기본 24h, 최대 120h)",
         "description": "region 또는 (lat,lon) 중 하나로 조회합니다. 기본 범위는 24h이며 range 또는 from/to로 기간을 제한할 수 있습니다. If ok=false, suggestions may include candidate sub-areas for selection.",
         "parameters": [
-          { "name": "region", "in": "query", "required": false, "schema": { "type": "string" } },
-          { "name": "lat", "in": "query", "required": false, "schema": { "type": "number" } },
-          { "name": "lon", "in": "query", "required": false, "schema": { "type": "number" } },
+          {
+            "name": "region",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lat",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
           {
             "name": "range",
             "in": "query",
             "required": false,
             "description": "조회 범위(서버가 hours[]를 필터링). from/to가 있으면 무시됩니다. 미지정 시 오늘(00:00~23:59, KST)을 요청하되 실제 반환은 기상청 제공 가능 시간대만 포함.",
-            "schema": { "type": "string", "enum": ["6h", "24h", "48h", "72h", "120h", "tomorrow"] }
+            "schema": {
+              "type": "string",
+              "enum": [
+                "6h",
+                "24h",
+                "48h",
+                "72h",
+                "120h",
+                "tomorrow"
+              ]
+            }
           },
           {
             "name": "from",
             "in": "query",
             "required": false,
             "description": "시작 시각(YYYYMMDDHHmm, KST). to와 함께 사용, 최대 120h로 자동 제한",
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           },
           {
             "name": "to",
             "in": "query",
             "required": false,
             "description": "종료 시각(YYYYMMDDHHmm, KST). from과 함께 사용, 최대 120h로 자동 제한",
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           },
           {
             "name": "compat",
             "in": "query",
             "required": false,
             "description": "legacy 객체(소문자 키) 포함",
-            "schema": { "type": "string", "enum": ["legacy", "rows"] }
+            "schema": {
+              "type": "string",
+              "enum": [
+                "legacy",
+                "rows"
+              ]
+            }
           },
-          { "name": "debug", "in": "query", "required": false, "schema": { "type": "boolean", "default": false } }
+          {
+            "name": "debug",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -220,82 +483,282 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["ok", "region", "grid", "base", "hours", "summary", "flags"],
+                  "required": [
+                    "ok",
+                    "region",
+                    "grid",
+                    "base",
+                    "hours",
+                    "summary",
+                    "flags"
+                  ],
                   "properties": {
-                    "ok": { "type": "boolean", "example": true },
-                    "stale": { "type": "boolean", "description": "캐시 폴백 여부", "example": false },
-                    "note": { "type": "string", "nullable": true, "example": "fallback_cache" },
+                    "ok": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "stale": {
+                      "type": "boolean",
+                      "description": "캐시 폴백 여부",
+                      "example": false
+                    },
+                    "note": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "fallback_cache"
+                    },
                     "cache": {
                       "type": "object",
                       "description": "캐시 메타(상단)",
                       "properties": {
-                        "hit": { "type": "boolean", "example": true },
-                        "ageMs": { "type": "integer", "example": 0 },
-                        "nextRefreshMs": { "type": "integer" },
-                        "ttl": { "type": "integer", "description": "남은 TTL(sec)", "example": 540 }
+                        "hit": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "ageMs": {
+                          "type": "integer",
+                          "example": 0
+                        },
+                        "nextRefreshMs": {
+                          "type": "integer"
+                        },
+                        "ttl": {
+                          "type": "integer",
+                          "description": "남은 TTL(sec)",
+                          "example": 540
+                        }
                       }
                     },
-                    "region": { "type": "string", "example": "서울특별시 강남구 역삼동" },
+                    "region": {
+                      "type": "string",
+                      "example": "서울특별시 강남구 역삼동"
+                    },
                     "grid": {
                       "type": "object",
-                      "required": ["nx", "ny"],
+                      "required": [
+                        "nx",
+                        "ny"
+                      ],
                       "properties": {
-                        "nx": { "type": "integer", "example": 61 },
-                        "ny": { "type": "integer", "example": 125 }
+                        "nx": {
+                          "type": "integer",
+                          "example": 61
+                        },
+                        "ny": {
+                          "type": "integer",
+                          "example": 125
+                        }
                       }
                     },
                     "base": {
                       "type": "object",
-                      "required": ["base_date", "base_time"],
+                      "required": [
+                        "base_date",
+                        "base_time"
+                      ],
                       "properties": {
-                        "base_date": { "type": "string", "example": "20250827" },
-                        "base_time": { "type": "string", "example": "1100" }
+                        "base_date": {
+                          "type": "string",
+                          "example": "20250827"
+                        },
+                        "base_time": {
+                          "type": "string",
+                          "example": "1100"
+                        }
                       }
                     },
                     "hours": {
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "required": ["dt"],
+                        "required": [
+                          "dt"
+                        ],
                         "properties": {
-                          "dt": { "type": "string", "example": "202508271500" },
-                          "dtKst": { "type": "string", "description": "KST ISO8601", "example": "2025-08-27T15:00+09:00" },
-                          "TMP": { "type": ["number", "null"], "example": 32 },
-                          "REH": { "type": ["number", "null"], "example": 43 },
-                          "WSD": { "type": ["number", "null"], "example": 2.8 },
-                          "POP": { "type": ["integer", "null"], "example": 30, "description": "강수확률(%)" },
+                          "dt": {
+                            "type": "string",
+                            "example": "202508271500"
+                          },
+                          "dtKst": {
+                            "type": "string",
+                            "description": "KST ISO8601",
+                            "example": "2025-08-27T15:00+09:00"
+                          },
+                          "TMP": {
+                            "type": [
+                              "number",
+                              "null"
+                            ],
+                            "example": 32
+                          },
+                          "REH": {
+                            "type": [
+                              "number",
+                              "null"
+                            ],
+                            "example": 43
+                          },
+                          "WSD": {
+                            "type": [
+                              "number",
+                              "null"
+                            ],
+                            "example": 2.8
+                          },
+                          "POP": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ],
+                            "example": 30,
+                            "description": "강수확률(%)"
+                          },
                           "PCP": {
-                            "oneOf": [ { "type": "number" }, { "type": "string" }, { "type": "null" } ],
+                            "oneOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
                             "example": 0.5,
                             "description": "1시간 강수량(mm). 숫자형 문자열은 number로 변환, 비정량 문자열은 원문 유지"
                           },
                           "SNO": {
-                            "oneOf": [ { "type": "number" }, { "type": "string" }, { "type": "null" } ],
+                            "oneOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
                             "example": 0.0,
                             "description": "1시간 신적설(cm). 숫자형 문자열은 number로 변환, 비정량 문자열은 원문 유지"
                           },
-                          "PTY": { "type": ["integer", "null"], "example": 0, "description": "강수형태(0:없음,…)" },
-                          "SKY": { "type": ["integer", "null"], "example": 3, "description": "하늘상태" },
-                          "PT":  { "type": ["number", "null"], "example": 30.8 },
-                          "level": { "type": ["string", "null"], "enum": ["정상","관심","주의","경고","위험", null], "description": "KMA2016(하절기) 체감온도 등급" }
+                          "PTY": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ],
+                            "example": 0,
+                            "description": "강수형태(0:없음,…)"
+                          },
+                          "SKY": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ],
+                            "example": 3,
+                            "description": "하늘상태"
+                          },
+                          "PT": {
+                            "type": [
+                              "number",
+                              "null"
+                            ],
+                            "example": 30.8
+                          },
+                          "level": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "?? ?? null (??/?? ?? ?? ?? ?? ?)"
+                          }
                         }
                       }
                     },
                     "summary": {
                       "type": "object",
                       "properties": {
-                        "maxPT": { "type": ["object","null"], "properties": { "dt": { "type":"string" }, "value": { "type":"number" }, "level": { "type":"string", "description": "KMA2016(하절기) 체감온도 등급" } } },
-                        "minPT": { "type": ["object","null"], "properties": { "dt": { "type":"string" }, "value": { "type":"number" }, "level": { "type":"string", "description": "KMA2016(하절기) 체감온도 등급" } } },
-                        "worstWindow": { "type": ["object","null"], "properties": { "from": { "type":"string" }, "to": { "type":"string" }, "hours": { "type":"integer" } } },
+                        "maxPT": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "dt": {
+                              "type": "string"
+                            },
+                            "value": {
+                              "type": "number"
+                            },
+                            "level": {
+                              "type": "string",
+                              "description": "?? ?? null (??/?? ?? ?? ?? ?? ?)"
+                            }
+                          }
+                        },
+                        "minPT": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "dt": {
+                              "type": "string"
+                            },
+                            "value": {
+                              "type": "number"
+                            },
+                            "level": {
+                              "type": "string",
+                              "description": "?? ?? null (??/?? ?? ?? ?? ?? ?)"
+                            }
+                          }
+                        },
+                        "worstWindow": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "from": {
+                              "type": "string"
+                            },
+                            "to": {
+                              "type": "string"
+                            },
+                            "hours": {
+                              "type": "integer"
+                            }
+                          }
+                        },
                         "worstAvg3h": {
-                        "type": ["object","null"],
-                        "properties": {
-                          "start": { "type": "string", "example": "202508271300" },
-                          "end":   { "type": "string", "example": "202508271500" },
-                          "avg":   { "type": "number", "example": 33.2 }
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "start": {
+                              "type": "string",
+                              "example": "202508271300"
+                            },
+                            "end": {
+                              "type": "string",
+                              "example": "202508271500"
+                            },
+                            "avg": {
+                              "type": "number",
+                              "example": 33.2
+                            }
+                          }
+                        },
+                        "headline": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "example": "오늘 최고 체감 33.1℃(12시, 관심), 비 가능"
                         }
-                      },
-                        "headline": { "type": ["string","null"], "example": "오늘 최고 체감 33.1℃(12시, 관심), 비 가능" }
                       }
                     },
                     "daily": {
@@ -303,21 +766,59 @@
                       "description": "일 단위 요약(선택)",
                       "items": {
                         "type": "object",
-                        "required": ["date"],
+                        "required": [
+                          "date"
+                        ],
                         "properties": {
-                          "date": { "type": "string", "example": "20250827" },
-                          "TMN": { "type": ["number", "null"], "example": 22.0 },
-                          "TMX": { "type": ["number", "null"], "example": 33.5 }
+                          "date": {
+                            "type": "string",
+                            "example": "20250827"
+                          },
+                          "TMN": {
+                            "type": [
+                              "number",
+                              "null"
+                            ],
+                            "example": 22.0
+                          },
+                          "TMX": {
+                            "type": [
+                              "number",
+                              "null"
+                            ],
+                            "example": 33.5
+                          }
                         }
                       }
                     },
                     "hazards": {
-                      "type": ["object", "null"],
+                      "type": [
+                        "object",
+                        "null"
+                      ],
                       "description": "현장 유의 플래그(특보 발효 아님)",
                       "properties": {
-                        "windRisk": { "type": ["boolean", "null"], "description": "풍속(WSD) 10 m/s 이상 가능 시 true" },
-                        "snowRisk": { "type": ["boolean", "null"], "description": "PTY(2/3/6/7) 또는 SNO(수치) 존재 시 true" },
-                        "slipFreezeRisk": { "type": ["boolean", "null"], "description": "PT≤0 + (PTY(1~7)/PCP/SNO 수치) 동시 만족 시 true" }
+                        "windRisk": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ],
+                          "description": "풍속(WSD) 10 m/s 이상 가능 시 true"
+                        },
+                        "snowRisk": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ],
+                          "description": "PTY(2/3/6/7) 또는 SNO(수치) 존재 시 true"
+                        },
+                        "slipFreezeRisk": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ],
+                          "description": "PT≤0 + (PTY(1~7)/PCP/SNO 수치) 동시 만족 시 true"
+                        }
                       }
                     },
                     "evidence": {
@@ -326,9 +827,18 @@
                       "items": {
                         "type": "object",
                         "properties": {
-                          "ruleId": { "type": "string", "example": "WINTER_5_RULES" },
-                          "doc": { "type": "string", "example": "동절기 길잡이" },
-                          "page": { "type": "integer", "example": 5 }
+                          "ruleId": {
+                            "type": "string",
+                            "example": "WINTER_5_RULES"
+                          },
+                          "doc": {
+                            "type": "string",
+                            "example": "동절기 길잡이"
+                          },
+                          "page": {
+                            "type": "integer",
+                            "example": 5
+                          }
                         }
                       }
                     },
@@ -341,42 +851,161 @@
                           "type": "array",
                           "items": {
                             "type": "object",
-                            "required": ["dt"],
+                            "required": [
+                              "dt"
+                            ],
                             "properties": {
-                              "dt": { "type": "string", "example": "202508271500" },
-                              "dtKst": { "type": "string", "description": "KST ISO8601", "example": "2025-08-27T15:00+09:00" },
-                              "tmp": { "type": ["number", "null"], "example": 32 },
-                              "reh": { "type": ["number", "null"], "example": 43 },
-                              "wsd": { "type": ["number", "null"], "example": 2.8 },
-                              "pop": { "type": ["integer", "null"], "example": 30, "description": "강수확률(%)" },
+                              "dt": {
+                                "type": "string",
+                                "example": "202508271500"
+                              },
+                              "dtKst": {
+                                "type": "string",
+                                "description": "KST ISO8601",
+                                "example": "2025-08-27T15:00+09:00"
+                              },
+                              "tmp": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ],
+                                "example": 32
+                              },
+                              "reh": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ],
+                                "example": 43
+                              },
+                              "wsd": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ],
+                                "example": 2.8
+                              },
+                              "pop": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ],
+                                "example": 30,
+                                "description": "강수확률(%)"
+                              },
                               "pcp": {
-                                "oneOf": [ { "type": "number" }, { "type": "string" }, { "type": "null" } ],
+                                "oneOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ],
                                 "example": 0.5,
                                 "description": "1시간 강수량(mm). 숫자형 문자열은 number로 변환, 비정량 문자열은 원문 유지"
                               },
                               "sno": {
-                                "oneOf": [ { "type": "number" }, { "type": "string" }, { "type": "null" } ],
+                                "oneOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ],
                                 "example": 0.0,
                                 "description": "1시간 신적설(cm). 숫자형 문자열은 number로 변환, 비정량 문자열은 원문 유지"
                               },
-                              "pty": { "type": ["integer", "null"], "example": 0, "description": "강수형태(0:없음,…)" },
-                              "sky": { "type": ["integer", "null"], "example": 3, "description": "하늘상태" },
-                              "pt":  { "type": ["number", "null"], "example": 30.8 },
-                              "level": { "type": ["string", "null"], "enum": ["정상","관심","주의","경고","위험", null], "description": "KMA2016(하절기) 체감온도 등급" }
+                              "pty": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ],
+                                "example": 0,
+                                "description": "강수형태(0:없음,…)"
+                              },
+                              "sky": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ],
+                                "example": 3,
+                                "description": "하늘상태"
+                              },
+                              "pt": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ],
+                                "example": 30.8
+                              },
+                              "level": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "description": "?? ?? null (??/?? ?? ?? ?? ?? ?)"
+                              }
                             }
                           }
                         }
                       }
                     },
-                    "flags": { "type": "array", "items": { "type": "string" }, "example": ["강수 가능성"] }
+                    "flags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "강수 가능성"
+                      ]
+                    },
+                    "ptSource": {
+                      "type": "string",
+                      "enum": [
+                        "LIVING_IDX",
+                        "WIND_CHILL",
+                        "FALLBACK"
+                      ],
+                      "description": "???? ?? ??"
+                    },
+                    "ptDefinition": {
+                      "type": "string",
+                      "enum": [
+                        "SEN_TA",
+                        "WCET_2001",
+                        "AIR_TEMP_ONLY"
+                      ],
+                      "description": "???? ??/??"
+                    },
+                    "ptLabel": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "???? ??? ?? ? ??"
+                    }
                   }
                 }
               }
             }
           },
-          "400": { "description": "요청 형식 오류" },
-          "404": { "description": "지역 매칭 실패" },
-          "500": { "description": "서버/외부 API 오류" }
+          "400": {
+            "description": "요청 형식 오류"
+          },
+          "404": {
+            "description": "지역 매칭 실패"
+          },
+          "500": {
+            "description": "서버/외부 API 오류"
+          }
         }
       }
     }
