@@ -1488,7 +1488,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getWarnings"
       }
     },
     "/api/risk": {
@@ -1678,7 +1679,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getRisk"
       }
     },
     "/api/pt-batch": {
@@ -1773,7 +1775,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postPtBatch"
       }
     }
   }
