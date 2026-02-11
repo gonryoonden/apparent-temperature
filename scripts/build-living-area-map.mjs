@@ -137,6 +137,16 @@ async function main() {
 
   const rows = loadRows(file);
   const { byAdminKey, byNxNy, collisions } = buildMap(rows);
+  const adminCount = Object.keys(byAdminKey).length;
+  const nxnyCount = Object.keys(byNxNy).length;
+
+  if (adminCount < 100 || nxnyCount < 100) {
+    if (fs.existsSync(outPath)) {
+      console.log("XLSX parse produced too few keys; keeping existing living_area_map.json.");
+      return;
+    }
+    throw new Error("XLSX parse produced too few keys; likely wrong file.");
+  }
 
   if (!fs.existsSync("lib")) fs.mkdirSync("lib");
   const out = {
@@ -144,8 +154,8 @@ async function main() {
       source: path.basename(file),
       generatedAt: new Date().toISOString(),
       totalRows: rows.length,
-      adminKeys: Object.keys(byAdminKey).length,
-      nxnyKeys: Object.keys(byNxNy).length,
+      adminKeys: adminCount,
+      nxnyKeys: nxnyCount,
       collisions: collisions.length,
     },
     byAdminKey,

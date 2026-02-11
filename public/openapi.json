@@ -85,6 +85,20 @@
               "type": "boolean",
               "default": false
             }
+          },
+          {
+            "name": "warnings",
+            "in": "query",
+            "required": false,
+            "description": "??(warnings) ?? ??",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "summary",
+                "full",
+                "none"
+              ]
+            }
           }
         ],
         "responses": {
@@ -473,6 +487,20 @@
             "schema": {
               "type": "boolean",
               "default": false
+            }
+          },
+          {
+            "name": "warnings",
+            "in": "query",
+            "required": false,
+            "description": "??(warnings) ?? ??",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "summary",
+                "full",
+                "none"
+              ]
             }
           }
         ],
@@ -1005,6 +1033,189 @@
           },
           "500": {
             "description": "서버/외부 API 오류"
+          }
+        }
+      }
+    },
+    "/api/warnings": {
+      "get": {
+        "summary": "???? ??",
+        "parameters": [
+          {
+            "name": "region",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lat",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "stnId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "areaCode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "warningType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "detail",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/risk": {
+      "get": {
+        "summary": "??? ??",
+        "parameters": [
+          {
+            "name": "region",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lat",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/pt-batch": {
+      "post": {
+        "summary": "???? ?? ??",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "warnings": {
+                    "type": "string",
+                    "enum": [
+                      "summary",
+                      "full",
+                      "none"
+                    ]
+                  },
+                  "regions": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "region": {
+                          "type": "string"
+                        },
+                        "lat": {
+                          "type": "number"
+                        },
+                        "lon": {
+                          "type": "number"
+                        },
+                        "warnings": {
+                          "type": "string",
+                          "enum": [
+                            "summary",
+                            "full",
+                            "none"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "concurrency": {
+                    "type": "integer",
+                    "description": "?? ?? ??"
+                  },
+                  "timeoutMs": {
+                    "type": "integer",
+                    "description": "?? ????(ms)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }

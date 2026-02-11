@@ -1,0 +1,1475 @@
+{
+  "generatedAt": "2026-02-11T02:12:40.253Z",
+  "areas": [
+    {
+      "areaCode": "S1151300",
+      "areaName": "강원남부앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2120700",
+      "areaName": "강원남부앞바다중 연안바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1151100",
+      "areaName": "강원북부앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2120600",
+      "areaName": "강원북부앞바다중 연안바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1151200",
+      "areaName": "강원중부앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2120500",
+      "areaName": "강원중부앞바다중 연안바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1311400",
+      "areaName": "거제시동부앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2320200",
+      "areaName": "거제시동부앞바다중 연안바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1311200",
+      "areaName": "경남서부남해앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2310600",
+      "areaName": "경남서부남해앞바다중 남부평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2320300",
+      "areaName": "경남서부남해앞바다중 남해군연안바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2310400",
+      "areaName": "경남서부남해앞바다중 동부평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2310500",
+      "areaName": "경남서부남해앞바다중 서부평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1311300",
+      "areaName": "경남중부남해앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2320800",
+      "areaName": "경남중부남해앞바다중 연안바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2310300",
+      "areaName": "경남중부남해앞바다중 평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1131200",
+      "areaName": "경북남부앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2120300",
+      "areaName": "경북남부앞바다중 연안바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2110100",
+      "areaName": "경북남부앞바다중 평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1131300",
+      "areaName": "경북북부앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2120100",
+      "areaName": "경북북부앞바다중 연안바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2120200",
+      "areaName": "경북북부앞바다중 영덕연안바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1312000",
+      "areaName": "남해동부먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1312020",
+      "areaName": "남해동부바깥먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1312010",
+      "areaName": "남해동부안쪽먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1311000",
+      "areaName": "남해동부앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1322200",
+      "areaName": "남해서부동쪽먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1322100",
+      "areaName": "남해서부서쪽먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2330100",
+      "areaName": "남해서부서쪽먼바다중 추자도연안바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1321000",
+      "areaName": "남해서부앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1132100",
+      "areaName": "동해남부남쪽먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1132120",
+      "areaName": "동해남부남쪽바깥먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1132110",
+      "areaName": "동해남부남쪽안쪽먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1132200",
+      "areaName": "동해남부북쪽먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1132220",
+      "areaName": "동해남부북쪽바깥먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1132210",
+      "areaName": "동해남부북쪽안쪽먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1131000",
+      "areaName": "동해남부앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1152000",
+      "areaName": "동해중부먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1152020",
+      "areaName": "동해중부바깥먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1152010",
+      "areaName": "동해중부안쪽먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1151000",
+      "areaName": "동해중부앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1311100",
+      "areaName": "부산앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2310100",
+      "areaName": "부산앞바다중 동부평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2310200",
+      "areaName": "부산앞바다중 서부평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2320100",
+      "areaName": "부산앞바다중 연안바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1232200",
+      "areaName": "서해남부남쪽먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1232220",
+      "areaName": "서해남부남쪽바깥먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1232210",
+      "areaName": "서해남부남쪽안쪽먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2211200",
+      "areaName": "서해남부남쪽먼바다중 조도부근평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1232100",
+      "areaName": "서해남부북쪽먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1232120",
+      "areaName": "서해남부북쪽바깥먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1232110",
+      "areaName": "서해남부북쪽안쪽먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1231000",
+      "areaName": "서해남부앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1252000",
+      "areaName": "서해중부먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1252020",
+      "areaName": "서해중부바깥먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1252010",
+      "areaName": "서해중부안쪽먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1251000",
+      "areaName": "서해중부앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2121000",
+      "areaName": "울릉도북면연안바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2120900",
+      "areaName": "울릉도서면연안바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2120800",
+      "areaName": "울릉도울릉읍연안바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1131100",
+      "areaName": "울산앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2120400",
+      "areaName": "울산앞바다중 연안바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2110200",
+      "areaName": "울산앞바다중 평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1251200",
+      "areaName": "인천·경기남부앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2211100",
+      "areaName": "인천·경기남부앞바다중 먼평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2211000",
+      "areaName": "인천·경기남부앞바다중 앞평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1251100",
+      "areaName": "인천·경기북부앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2210900",
+      "areaName": "인천·경기북부앞바다중 먼평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2210800",
+      "areaName": "인천·경기북부앞바다중 앞평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2212000",
+      "areaName": "인천·경기북부앞바다중 평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1231500",
+      "areaName": "전남남부서해앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2210500",
+      "areaName": "전남남부서해앞바다중 평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1321200",
+      "areaName": "전남동부남해앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2310900",
+      "areaName": "전남동부남해앞바다중 동부평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2310800",
+      "areaName": "전남동부남해앞바다중 서부평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1231300",
+      "areaName": "전남북부서해앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2210300",
+      "areaName": "전남북부서해앞바다중 평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1321100",
+      "areaName": "전남서부남해앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2310700",
+      "areaName": "전남서부남해앞바다중 평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1231400",
+      "areaName": "전남중부서해앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2211300",
+      "areaName": "전남중부서해앞바다중 먼평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2211400",
+      "areaName": "전남중부서해앞바다중 앞평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1231200",
+      "areaName": "전북남부앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2210200",
+      "areaName": "전북남부앞바다중 평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1231100",
+      "areaName": "전북북부앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2210100",
+      "areaName": "전북북부앞바다중 평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1323300",
+      "areaName": "제주도남부앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2320700",
+      "areaName": "제주도남부앞바다중 연안바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1324000",
+      "areaName": "제주도남쪽먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1324020",
+      "areaName": "제주도남쪽바깥먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1324110",
+      "areaName": "제주도남동쪽안쪽먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1324210",
+      "areaName": "제주도남서쪽안쪽먼바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1323200",
+      "areaName": "제주도동부앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2321000",
+      "areaName": "제주도동부앞바다중 남동연안바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2320900",
+      "areaName": "제주도동부앞바다중 북동연안바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2330200",
+      "areaName": "제주도동부앞바다중 우도연안바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1323100",
+      "areaName": "제주도북부앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2320400",
+      "areaName": "제주도북부앞바다중 연안바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1323400",
+      "areaName": "제주도서부앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2330300",
+      "areaName": "제주도서부앞바다중 가파도연안바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2320620",
+      "areaName": "제주도서부앞바다중 남서연안바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2320610",
+      "areaName": "제주도서부앞바다중 북서연안바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1323000",
+      "areaName": "제주도앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2211500",
+      "areaName": "천수만 평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1251400",
+      "areaName": "충남남부앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2210700",
+      "areaName": "충남남부앞바다중 평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S1251300",
+      "areaName": "충남북부앞바다",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "S2210600",
+      "areaName": "충남북부앞바다중 평수구역",
+      "group": "해상(동해.서해.남해)"
+    },
+    {
+      "areaCode": "L1010100",
+      "areaName": "서울 종료",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1100100",
+      "areaName": "서울(동남권)",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1100200",
+      "areaName": "서울(동북권)",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1100300",
+      "areaName": "서울(서남권)",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1100400",
+      "areaName": "서울(서북권)",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1010200",
+      "areaName": "광명",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1010300",
+      "areaName": "과천",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1010400",
+      "areaName": "안산",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1010500",
+      "areaName": "시흥",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1010600",
+      "areaName": "부천",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1010700",
+      "areaName": "김포",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1010800",
+      "areaName": "인천",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1010900",
+      "areaName": "강화",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1011100",
+      "areaName": "동두천",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1011200",
+      "areaName": "연천",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1011300",
+      "areaName": "포천",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1011400",
+      "areaName": "가평",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1011500",
+      "areaName": "고양",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1011600",
+      "areaName": "양주",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1011700",
+      "areaName": "의정부",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1011800",
+      "areaName": "파주",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1011900",
+      "areaName": "수원",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1012000",
+      "areaName": "성남",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1012100",
+      "areaName": "안양",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1012200",
+      "areaName": "구리",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1012300",
+      "areaName": "남양주",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1012400",
+      "areaName": "오산",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1012500",
+      "areaName": "평택",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1012600",
+      "areaName": "군포",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1012700",
+      "areaName": "의왕",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1012800",
+      "areaName": "하남",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1012900",
+      "areaName": "용인",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1013000",
+      "areaName": "이천",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1013100",
+      "areaName": "안성",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1013200",
+      "areaName": "화성",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1013300",
+      "areaName": "여주",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1013400",
+      "areaName": "광주",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1013500",
+      "areaName": "양평",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1013600",
+      "areaName": "옹진",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1014100",
+      "areaName": "서해5도",
+      "group": "서울.인천.경기"
+    },
+    {
+      "areaCode": "L1020110",
+      "areaName": "강릉평지",
+      "group": "강원"
+    },
+    {
+      "areaCode": "L1020210",
+      "areaName": "동해평지",
+      "group": "강원"
+    },
+    {
+      "areaCode": "L1020300",
+      "areaName": "태백",
+      "group": "강원"
+    },
+    {
+      "areaCode": "L1020410",
+      "areaName": "삼척평지",
+      "group": "강원"
+    },
+    {
+      "areaCode": "L1020510",
+      "areaName": "속초평지",
+      "group": "강원"
+    },
+    {
+      "areaCode": "L1020610",
+      "areaName": "고성평지",
+      "group": "강원"
+    },
+    {
+      "areaCode": "L1020710",
+      "areaName": "양양평지",
+      "group": "강원"
+    },
+    {
+      "areaCode": "L1020800",
+      "areaName": "영월",
+      "group": "강원"
+    },
+    {
+      "areaCode": "L1020910",
+      "areaName": "평창평지",
+      "group": "강원"
+    },
+    {
+      "areaCode": "L1021010",
+      "areaName": "정선평지",
+      "group": "강원"
+    },
+    {
+      "areaCode": "L1021100",
+      "areaName": "횡성",
+      "group": "강원"
+    },
+    {
+      "areaCode": "L1021200",
+      "areaName": "원주",
+      "group": "강원"
+    },
+    {
+      "areaCode": "L1021300",
+      "areaName": "철원",
+      "group": "강원"
+    },
+    {
+      "areaCode": "L1021400",
+      "areaName": "화천",
+      "group": "강원"
+    },
+    {
+      "areaCode": "L1021510",
+      "areaName": "홍천평지",
+      "group": "강원"
+    },
+    {
+      "areaCode": "L1021600",
+      "areaName": "춘천",
+      "group": "강원"
+    },
+    {
+      "areaCode": "L1021710",
+      "areaName": "양구평지",
+      "group": "강원"
+    },
+    {
+      "areaCode": "L1021810",
+      "areaName": "인제평지",
+      "group": "강원"
+    },
+    {
+      "areaCode": "L1025020",
+      "areaName": "강원북부산지",
+      "group": "강원"
+    },
+    {
+      "areaCode": "L1026020",
+      "areaName": "강원중부산지",
+      "group": "강원"
+    },
+    {
+      "areaCode": "L1027020",
+      "areaName": "강원남부산지",
+      "group": "강원"
+    },
+    {
+      "areaCode": "L1030100",
+      "areaName": "대전",
+      "group": "대전.세종.충남"
+    },
+    {
+      "areaCode": "L1030200",
+      "areaName": "천안",
+      "group": "대전.세종.충남"
+    },
+    {
+      "areaCode": "L1030300",
+      "areaName": "공주",
+      "group": "대전.세종.충남"
+    },
+    {
+      "areaCode": "L1030400",
+      "areaName": "아산",
+      "group": "대전.세종.충남"
+    },
+    {
+      "areaCode": "L1030500",
+      "areaName": "논산",
+      "group": "대전.세종.충남"
+    },
+    {
+      "areaCode": "L1030600",
+      "areaName": "금산",
+      "group": "대전.세종.충남"
+    },
+    {
+      "areaCode": "L1030800",
+      "areaName": "부여",
+      "group": "대전.세종.충남"
+    },
+    {
+      "areaCode": "L1030900",
+      "areaName": "청양",
+      "group": "대전.세종.충남"
+    },
+    {
+      "areaCode": "L1031000",
+      "areaName": "예산",
+      "group": "대전.세종.충남"
+    },
+    {
+      "areaCode": "L1031100",
+      "areaName": "태안",
+      "group": "대전.세종.충남"
+    },
+    {
+      "areaCode": "L1031200",
+      "areaName": "당진",
+      "group": "대전.세종.충남"
+    },
+    {
+      "areaCode": "L1031300",
+      "areaName": "서산",
+      "group": "대전.세종.충남"
+    },
+    {
+      "areaCode": "L1031400",
+      "areaName": "보령",
+      "group": "대전.세종.충남"
+    },
+    {
+      "areaCode": "L1031500",
+      "areaName": "서천",
+      "group": "대전.세종.충남"
+    },
+    {
+      "areaCode": "L1031600",
+      "areaName": "홍성",
+      "group": "대전.세종.충남"
+    },
+    {
+      "areaCode": "L1031700",
+      "areaName": "계룡",
+      "group": "대전.세종.충남"
+    },
+    {
+      "areaCode": "L1031800",
+      "areaName": "세종",
+      "group": "대전.세종.충남"
+    },
+    {
+      "areaCode": "L1040100",
+      "areaName": "청주",
+      "group": "충북"
+    },
+    {
+      "areaCode": "L1040300",
+      "areaName": "보은",
+      "group": "충북"
+    },
+    {
+      "areaCode": "L1040400",
+      "areaName": "괴산",
+      "group": "충북"
+    },
+    {
+      "areaCode": "L1040600",
+      "areaName": "옥천",
+      "group": "충북"
+    },
+    {
+      "areaCode": "L1040700",
+      "areaName": "영동",
+      "group": "충북"
+    },
+    {
+      "areaCode": "L1040800",
+      "areaName": "충주",
+      "group": "충북"
+    },
+    {
+      "areaCode": "L1040900",
+      "areaName": "제천",
+      "group": "충북"
+    },
+    {
+      "areaCode": "L1041000",
+      "areaName": "진천",
+      "group": "충북"
+    },
+    {
+      "areaCode": "L1041100",
+      "areaName": "음성",
+      "group": "충북"
+    },
+    {
+      "areaCode": "L1041200",
+      "areaName": "단양",
+      "group": "충북"
+    },
+    {
+      "areaCode": "L1041300",
+      "areaName": "증평",
+      "group": "충북"
+    },
+    {
+      "areaCode": "L1050100",
+      "areaName": "광주",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1050200",
+      "areaName": "나주",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1050300",
+      "areaName": "담양",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1050400",
+      "areaName": "곡성",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1050500",
+      "areaName": "구례",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1050600",
+      "areaName": "장성",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1050700",
+      "areaName": "화순",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1050800",
+      "areaName": "고흥",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1050900",
+      "areaName": "보성",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1051000",
+      "areaName": "여수",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1051100",
+      "areaName": "광양",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1051200",
+      "areaName": "순천",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1051300",
+      "areaName": "장흥",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1051400",
+      "areaName": "강진",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1051500",
+      "areaName": "해남",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1051600",
+      "areaName": "완도",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1051700",
+      "areaName": "영암",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1051800",
+      "areaName": "무안",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1051900",
+      "areaName": "함평",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1052000",
+      "areaName": "영광",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1052100",
+      "areaName": "목포",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1052200",
+      "areaName": "신안(흑산면제외)",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1052300",
+      "areaName": "진도",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1052500",
+      "areaName": "흑산도.홍도",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1052600",
+      "areaName": "거문도.초도",
+      "group": "광주.전남"
+    },
+    {
+      "areaCode": "L1060100",
+      "areaName": "고창",
+      "group": "전북"
+    },
+    {
+      "areaCode": "L1060200",
+      "areaName": "부안",
+      "group": "전북"
+    },
+    {
+      "areaCode": "L1060300",
+      "areaName": "군산",
+      "group": "전북"
+    },
+    {
+      "areaCode": "L1060400",
+      "areaName": "김제",
+      "group": "전북"
+    },
+    {
+      "areaCode": "L1060500",
+      "areaName": "완주",
+      "group": "전북"
+    },
+    {
+      "areaCode": "L1060600",
+      "areaName": "진안",
+      "group": "전북"
+    },
+    {
+      "areaCode": "L1060700",
+      "areaName": "무주",
+      "group": "전북"
+    },
+    {
+      "areaCode": "L1060800",
+      "areaName": "장수",
+      "group": "전북"
+    },
+    {
+      "areaCode": "L1060900",
+      "areaName": "임실",
+      "group": "전북"
+    },
+    {
+      "areaCode": "L1061000",
+      "areaName": "순창",
+      "group": "전북"
+    },
+    {
+      "areaCode": "L1061100",
+      "areaName": "익산",
+      "group": "전북"
+    },
+    {
+      "areaCode": "L1061200",
+      "areaName": "정읍",
+      "group": "전북"
+    },
+    {
+      "areaCode": "L1061300",
+      "areaName": "전주",
+      "group": "전북"
+    },
+    {
+      "areaCode": "L1061400",
+      "areaName": "남원",
+      "group": "전북"
+    },
+    {
+      "areaCode": "L1070100",
+      "areaName": "대구",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1070300",
+      "areaName": "구미",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1070400",
+      "areaName": "영천",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1070500",
+      "areaName": "경산",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1070600",
+      "areaName": "군위",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1070700",
+      "areaName": "청도",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1070800",
+      "areaName": "고령",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1070900",
+      "areaName": "성주",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1071000",
+      "areaName": "칠곡",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1071100",
+      "areaName": "김천",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1071200",
+      "areaName": "상주",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1071300",
+      "areaName": "문경",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1071400",
+      "areaName": "예천",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1071500",
+      "areaName": "안동",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1071600",
+      "areaName": "영주",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1071700",
+      "areaName": "의성",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1071800",
+      "areaName": "청송",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1071910",
+      "areaName": "영양평지",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1072010",
+      "areaName": "봉화평지",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1072100",
+      "areaName": "울릉도.독도",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1072200",
+      "areaName": "영덕",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1072310",
+      "areaName": "울진평지",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1072400",
+      "areaName": "포항",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1072500",
+      "areaName": "경주",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1075020",
+      "areaName": "경북북동산지",
+      "group": "대구.경북"
+    },
+    {
+      "areaCode": "L1080100",
+      "areaName": "부산",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1082500",
+      "areaName": "부산동부",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1082600",
+      "areaName": "부산중부",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1082700",
+      "areaName": "부산서부",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1080300",
+      "areaName": "울산",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1082800",
+      "areaName": "울산동부",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1082900",
+      "areaName": "울산서부",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1080500",
+      "areaName": "양산",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1080600",
+      "areaName": "창원",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1080900",
+      "areaName": "김해",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1081000",
+      "areaName": "밀양",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1081100",
+      "areaName": "의령",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1081200",
+      "areaName": "함안",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1081300",
+      "areaName": "창녕",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1081400",
+      "areaName": "진주",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1081500",
+      "areaName": "하동",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1081600",
+      "areaName": "산청",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1081700",
+      "areaName": "함양",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1081800",
+      "areaName": "거창",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1081900",
+      "areaName": "합천",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1082000",
+      "areaName": "통영",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1082100",
+      "areaName": "사천",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1082200",
+      "areaName": "거제",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1082300",
+      "areaName": "고성",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1082400",
+      "areaName": "남해",
+      "group": "부산.울산.경남"
+    },
+    {
+      "areaCode": "L1090500",
+      "areaName": "제주도산지",
+      "group": "제주"
+    },
+    {
+      "areaCode": "L1090600",
+      "areaName": "제주도서부",
+      "group": "제주"
+    },
+    {
+      "areaCode": "L1090700",
+      "areaName": "제주도북부",
+      "group": "제주"
+    },
+    {
+      "areaCode": "L1090800",
+      "areaName": "제주도동부",
+      "group": "제주"
+    },
+    {
+      "areaCode": "L1090900",
+      "areaName": "제주도남부",
+      "group": "제주"
+    },
+    {
+      "areaCode": "L1091000",
+      "areaName": "추자도",
+      "group": "제주"
+    },
+    {
+      "areaCode": "L1091100",
+      "areaName": "제주도 북부중 산간",
+      "group": "제주"
+    },
+    {
+      "areaCode": "L1091200",
+      "areaName": "제주도 남부중 산간",
+      "group": "제주"
+    }
+  ]
+}

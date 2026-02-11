@@ -3,7 +3,11 @@ import { callVilageWithFallback } from "../lib/kmaForecast.js";
 import { cacheGet, cacheSet } from "../lib/cache.js";
 import { ttlToNext30m, ttlToNextVilageIssue } from "../lib/kma-ttl.js";
 import { resolveRegion } from "../lib/region-resolver.js";
+import { parseLatLon, latlonToGrid } from "../lib/geo.js";
+import { resolveWarningsMapping } from "../lib/services/warningsMapper.js";
+import { getWarningsNormalized } from "../lib/services/warningsService.js";
 import { fetchSenTaWithFallback, buildSenTaSeries, isSummerSeason } from "../lib/livingIndex.js";
+import { readFileSync } from "fs";
 // KST 시간 유틸 + 단기예보(8회) 베이스타임 산출
 const toKST = (d = new Date()) => new Date(d.getTime() + 9 * 60 * 60 * 1000);
 const pad2 = n => String(n).padStart(2, '0');
@@ -19,6 +23,12 @@ const PT_SOURCE_LIVING = "LIVING_IDX";
 const PT_SOURCE_WIND = "WIND_CHILL";
 const PT_SOURCE_FALLBACK = "FALLBACK";
 const LIVING_REQUEST_CODE = "A41";
+let livingAreaMap = { byAdminKey: {}, byNxNy: {} };
+try {
+  livingAreaMap = JSON.parse(
+    readFileSync(new URL("../lib/living_area_map.json", import.meta.url), "utf-8")
+  );
+} catch { /* optional */ }
 
 const isMissingNumber = (n) =>
   Number.isFinite(n) && (n >= MISSING_THRESHOLD || n <= -MISSING_THRESHOLD);
@@ -417,33 +427,89 @@ export default async function handler(req, res) {
   try {
     // 입력 파라미터 통합: region 우선, 없으면 q
     const region = (req.query.region || req.body?.region || req.query.q || "").trim();
-    if (!region) return res.status(200).json({ ok:false, error:"region(또는 q) 필요" });
+    const latlon = parseLatLon(req.query.lat, req.query.lon);
+    const hasLatLon = latlon.ok;
+    if (!region && !hasLatLon) return res.status(200).json({ ok:false, error:"region(또는 q) 또는 lat/lon 필요" });
     const range = (getScalar(req.query.range) || "").trim();
     const from = (getScalar(req.query.from) || "").trim();
     const to = (getScalar(req.query.to) || "").trim();
     const rangeFilter = buildRangeFilter({ range, from, to });
     const compat = (getScalar(req.query.compat) || "").toLowerCase();
     const includeLegacy = compat === "legacy" || compat === "rows";
+    const warningsModeRaw = (getScalar(req.query.warnings) || "summary").toLowerCase();
+    const warningsMode = ["summary", "full", "none"].includes(warningsModeRaw) ? warningsModeRaw : "summary";
+    const warningsEnabled = warningsMode !== "none";
 
     // ① 선검사(정규화 → 법정→행정 → nx/ny)
-    const r = resolveRegion(region);
-    console.log("[pt-forecast] region=", region, "resolve=", {
-      ok: r.ok, match: r.match, adminKey: r.adminKey, nxny: r.nxny
-    });
-
-    // ② 실패시: 외부 API 호출하지 않고 제안만 반환
-    if (!r.ok) {
-      return res.status(200).json({
-        ok: false,
-        reason: r.reason,          // 'NOT_FOUND' 등
-        suggestions: r.suggestions // 후보 리스트
+    let r = null;
+    let nx, ny, adminKey = null;
+    let resolvedRegion = region || null;
+    if (region) {
+      r = resolveRegion(region);
+      console.log("[pt-forecast] region=", region, "resolve=", {
+        ok: r.ok, match: r.match, adminKey: r.adminKey, nxny: r.nxny
       });
+
+      // ② 실패시: 외부 API 호출하지 않고 제안만 반환
+      if (!r.ok && !hasLatLon) {
+        return res.status(200).json({
+          ok: false,
+          reason: r.reason,          // 'NOT_FOUND' 등
+          suggestions: r.suggestions // 후보 리스트
+        });
+      }
+      if (r.ok) {
+        adminKey = r.adminKey || null;
+        if (!hasLatLon) {
+          nx = r.nxny.nx;
+          ny = r.nxny.ny;
+        }
+        resolvedRegion = r.adminKey || region;
+      }
+    }
+
+    if (hasLatLon) {
+      const grid = latlonToGrid(latlon.lat, latlon.lon);
+      nx = grid?.nx ?? nx;
+      ny = grid?.ny ?? ny;
+      if (!resolvedRegion) resolvedRegion = `${latlon.lat},${latlon.lon}`;
+    }
+
+    if (nx == null || ny == null) {
+      return res.status(200).json({ ok:false, error:"좌표 변환 실패" });
     }
 
     // ③ 성공시: nx, ny 확보
-    const { nx, ny } = r.nxny;
-    const areaNo = r.areaNo || null;
-    const resolvedRegion = r.adminKey || region;
+    const areaNo = (r && r.ok ? r.areaNo : null) || livingAreaMap?.byNxNy?.[`${nx},${ny}`] || null;
+
+    const attachWarnings = async (payload) => {
+      if (!warningsEnabled) return payload;
+      try {
+        const mapping = resolveWarningsMapping({ adminKey, nx, ny });
+        if (mapping?.stnId) {
+          const warnings = await getWarningsNormalized({
+            stnId: mapping.stnId,
+            areaCode: mapping.areaCode,
+            detail: warningsMode === "full",
+          });
+          const summary = {
+            ...warnings.summary,
+            areaCode: mapping.areaCode || null,
+            areaName: mapping.areaName || null,
+          };
+          return {
+            ...payload,
+            warnings:
+              warningsMode === "full"
+                ? { ...summary, items: warnings.items }
+                : summary,
+          };
+        }
+      } catch {
+        return { ...payload, warnings: { error: "warnings_error" } };
+      }
+      return payload;
+    };
 
     const now = new Date();
     const isSummer = isSummerSeason(now);
@@ -453,7 +519,7 @@ export default async function handler(req, res) {
       const livingTtlSec = 60 * 60;
       const cachedLiving = await cacheGet(livingCacheKey);
       if (cachedLiving?.series?.length) {
-        return res.status(200).json({
+        const basePayload = {
           ok: true,
           cache: { hit: true, ageMs: 0, ttl: livingTtlSec, nextRefreshMs: livingTtlSec * 1000 },
           ...shapeLivingForecast(
@@ -462,7 +528,9 @@ export default async function handler(req, res) {
             rangeFilter,
             { ptSource: PT_SOURCE_LIVING, ptDefinition: PT_DEF_LIVING }
           )
-        });
+        };
+        const out = await attachWarnings(basePayload);
+        return res.status(200).json(out);
       }
       try {
         const living = await fetchSenTaWithFallback({
@@ -474,7 +542,7 @@ export default async function handler(req, res) {
           const series = buildSenTaSeries(living.items[0], living.baseTime);
           if (series.length) {
             await cacheSet(livingCacheKey, { baseTime: living.baseTime, series }, livingTtlSec);
-            return res.status(200).json({
+            const basePayload = {
               ok: true,
               cache: { hit: false, ageMs: 0, ttl: livingTtlSec, nextRefreshMs: livingTtlSec * 1000 },
               ...shapeLivingForecast(
@@ -483,7 +551,9 @@ export default async function handler(req, res) {
                 rangeFilter,
                 { ptSource: PT_SOURCE_LIVING, ptDefinition: PT_DEF_LIVING }
               )
-            });
+            };
+            const out = await attachWarnings(basePayload);
+            return res.status(200).json(out);
           }
         }
       } catch (e) {
@@ -506,30 +576,36 @@ export default async function handler(req, res) {
     try {
       const cached = await cacheGet(cacheKey);
       if (cached) {
-        return res.status(200).json({
+        const basePayload = {
           ok: true,
           cache: { hit: true, ageMs: 0, ttl: ttlSec, nextRefreshMs },
           ...shapeForecast(cached, { nx, ny, region: resolvedRegion }, rangeFilter, { includeLegacy, ptSource, ptDefinition, ptMode, ptLabel })
-        });
+        };
+        const out = await attachWarnings(basePayload);
+        return res.status(200).json(out);
       }
       const fc = await callVilageWithFallback({ base_date, base_time, nx, ny }); // 기존 호출
       await cacheSet(cacheKey, fc, ttlSec);
       await cacheSet(latestKey, fc, 60*60); // 1시간 폴백
-      return res.status(200).json({
+      const basePayload = {
         ok: true,
         cache: { hit: false, ageMs: 0, ttl: ttlSec, nextRefreshMs },
         ...shapeForecast(fc, { nx, ny, region: resolvedRegion }, rangeFilter, { includeLegacy, ptSource, ptDefinition, ptMode, ptLabel })
-      });
+      };
+      const out = await attachWarnings(basePayload);
+      return res.status(200).json(out);
     } catch (e) {
       const last = await cacheGet(latestKey);
       if (last) {
-        return res.status(200).json({
+        const basePayload = {
           ok: true,
           stale: true,
           note: "fallback_cache",
           cache: { hit: true, ageMs: 0, ttl: ttlSec, nextRefreshMs },
           ...shapeForecast(last, { nx, ny, region: resolvedRegion }, rangeFilter, { includeLegacy, ptSource, ptDefinition, ptMode, ptLabel })
-        });
+        };
+        const out = await attachWarnings(basePayload);
+        return res.status(200).json(out);
       }
       return res.status(200).json({ ok:false, reason:'upstream_error' });
     }

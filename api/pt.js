@@ -24,6 +24,9 @@ import { fetchWithRetry } from "../lib/http.js";
 import { cacheGet, cacheSet } from "../lib/cache.js";
 import { ttlToNext10m } from "../lib/kma-ttl.js";
 import { resolveRegion } from "../lib/region-resolver.js";
+import { parseLatLon, latlonToGrid } from "../lib/geo.js";
+import { resolveWarningsMapping } from "../lib/services/warningsMapper.js";
+import { getWarningsNormalized } from "../lib/services/warningsService.js";
 import { fetchSenTaWithFallback, buildSenTaSeries, pickNearestFuture, toKstIsoFromMs, isSummerSeason } from "../lib/livingIndex.js";
 import fs from "fs";
 import fsp from "fs/promises";
@@ -419,50 +422,75 @@ export default async function handler(req, res) {
   let latestKey, regionRaw, nx, ny, areaNo, debug, compat, phrase, threshold;
   try {
     regionRaw = (getScalar(req.query.region) || "").trim();
-    if (!regionRaw.length) {
-      return res.status(200).json({ ok: false, error: "region 쿼리가 비어 있습니다." });
+    const latlon = parseLatLon(req.query.lat, req.query.lon);
+    const hasLatLon = latlon.ok;
+    if (!regionRaw.length && !hasLatLon) {
+      return res.status(200).json({ ok: false, error: "region 또는 lat/lon 입력이 필요합니다." });
     }
     threshold = parseNumberOrNull(getScalar(req.query.threshold));
     phrase = parseBool(getScalar(req.query.phrase) || "false");
     compat = (getScalar(req.query.compat) || "").toLowerCase(); // "rows" 지원
     debug = parseBool(getScalar(req.query.debug) || "false");
+    const warningsModeRaw = (getScalar(req.query.warnings) || "summary").toLowerCase();
+    const warningsMode = ["summary", "full", "none"].includes(warningsModeRaw) ? warningsModeRaw : "summary";
+    const warningsEnabled = warningsMode !== "none";
 
     // ➊ 리졸버 우선 (법정→행정→nx,ny)
-    const r = resolveRegion(regionRaw);
-    if (r.ok) {
-      nx = r.nxny.nx;
-      ny = r.nxny.ny;
-      areaNo = r.areaNo || null;
-    } else {
-      const resolverSuggestions = r.suggestions || [];
-      if (r.reason === "NO_DONG" && resolverSuggestions.length > 0) {
-        const response = {
-            ok: false,
-            error: `하위 행정구역을 지정해 주세요: "${regionRaw}"`,
-            suggestions: resolverSuggestions
-        };
-        response.message = `다음 후보 중에서 선택해 주세요: ${resolverSuggestions.join(', ')}`;
-        return res.status(200).json(response);
-      }
-      // ➋ 기존 휴리스틱 폴백
-      const matchResult = findNxNy(regionRaw);
-      if (!matchResult.coords) {
-        // Use suggestions from the resolver if available, otherwise from findNxNy
-        const suggestions = resolverSuggestions.length ? resolverSuggestions : (matchResult.suggestions || []);
-        const response = {
-            ok: false,
-            error: `지역 매칭 실패: "${regionRaw}"`,
-            suggestions: suggestions
-        };
-        if (suggestions.length > 0) {
-            response.message = `다음 지역명으로 다시 시도해보세요: ${suggestions.join(', ')}`;
+    let adminKey = null;
+    if (regionRaw) {
+      const r = resolveRegion(regionRaw);
+      if (r.ok) {
+        adminKey = r.adminKey || null;
+        if (!hasLatLon) {
+          nx = r.nxny.nx;
+          ny = r.nxny.ny;
         }
-        return res.status(200).json(response);
+        areaNo = r.areaNo || null;
+      } else if (!hasLatLon) {
+        const resolverSuggestions = r.suggestions || [];
+        if (r.reason === "NO_DONG" && resolverSuggestions.length > 0) {
+          const response = {
+              ok: false,
+              error: `하위 행정구역을 지정해 주세요: "${regionRaw}"`,
+              suggestions: resolverSuggestions
+          };
+          response.message = `다음 후보 중에서 선택해 주세요: ${resolverSuggestions.join(', ')}`;
+          return res.status(200).json(response);
+        }
+        // ➋ 기존 휴리스틱 폴백
+        const matchResult = findNxNy(regionRaw);
+        if (!matchResult.coords) {
+          // Use suggestions from the resolver if available, otherwise from findNxNy
+          const suggestions = resolverSuggestions.length ? resolverSuggestions : (matchResult.suggestions || []);
+          const response = {
+              ok: false,
+              error: `지역 매칭 실패: "${regionRaw}"`,
+              suggestions: suggestions
+          };
+          if (suggestions.length > 0) {
+              response.message = `다음 지역명으로 다시 시도해보세요: ${suggestions.join(', ')}`;
+          }
+          return res.status(200).json(response);
+        }
+        ({ nx, ny } = matchResult.coords);
+        areaNo = livingAreaMap?.byNxNy?.[`${nx},${ny}`] || null;
       }
-      ({ nx, ny } = matchResult.coords);
+    }
+    if (hasLatLon) {
+      const grid = latlonToGrid(latlon.lat, latlon.lon);
+      nx = grid?.nx ?? nx;
+      ny = grid?.ny ?? ny;
+      if (!regionRaw) regionRaw = `${latlon.lat},${latlon.lon}`;
+    }
+    if (nx == null || ny == null) {
+      return res.status(200).json({ ok: false, error: "좌표 변환 실패" });
+    }
+    if (!areaNo) {
       areaNo = livingAreaMap?.byNxNy?.[`${nx},${ny}`] || null;
     }
+
     // 캐시 키 전략: nx,ny + 발표정시
+// 캐시 키 전략: nx,ny + 발표정시
     const { base_date, base_time } = getUltraBaseDateTime();
     const cacheKey = `${nx},${ny},ultra,${base_date}${base_time}`;
     latestKey = `${nx},${ny},ultra,latest`;
@@ -585,6 +613,30 @@ export default async function handler(req, res) {
         ts: nowISO,
       },
     };
+
+    if (warningsEnabled) {
+      try {
+        const mapping = resolveWarningsMapping({ adminKey, nx, ny });
+        if (mapping?.stnId) {
+          const warnings = await getWarningsNormalized({
+            stnId: mapping.stnId,
+            areaCode: mapping.areaCode,
+            detail: warningsMode === "full",
+          });
+          const summary = {
+            ...warnings.summary,
+            areaCode: mapping.areaCode || null,
+            areaName: mapping.areaName || null,
+          };
+          payload.warnings =
+            warningsMode === "full"
+              ? { ...summary, items: warnings.items }
+              : summary;
+        }
+      } catch {
+        payload.warnings = { error: "warnings_error" };
+      }
+    }
 
     if (compat === "rows") {
       payload.legacy = {
