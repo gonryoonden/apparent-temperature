@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="정부 안내서비스 24건 검색 및 안내분야 필터">
+<title>정부 안내서비스 찾기</title>
+<style>
+:root{--blue:#1456c0;--dark:#0c3e91;--soft:#eaf2ff;--text:#172033;--muted:#627087;--line:#dce3ec;--bg:#f4f7fb;--green:#087f5b;--red:#bd3f38}*{box-sizing:border-box}body{margin:0;font-family:"Noto Sans KR","Malgun Gothic",Arial,sans-serif;color:var(--text);background:var(--bg);line-height:1.55}.skip{position:absolute;left:16px;top:-50px;background:#082f6c;color:#fff;padding:9px 13px;border-radius:8px;z-index:10}.skip:focus{top:16px}.hero{color:#fff;background:linear-gradient(125deg,#0c3e91,#1456c0 60%,#2b7ce4)}.wrap{width:min(1160px,calc(100% - 40px));margin:auto}.hero .wrap{padding:48px 0 88px}.eyebrow{display:inline-block;margin:0 0 12px;padding:6px 11px;border:1px solid #ffffff55;border-radius:99px;background:#ffffff18;font-size:.85rem;font-weight:800}h1{margin:0;font-size:clamp(2rem,5vw,3.35rem);line-height:1.17;letter-spacing:-.04em}.lead{max-width:720px;margin:16px 0 0;color:#ffffffe3;font-size:1.08rem}main{margin-top:-48px}.panel{padding:22px;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 10px 30px #162d5414}.filters{display:grid;grid-template-columns:2fr 1fr auto;gap:13px;align-items:end}label{display:block;margin-bottom:7px;font-size:.9rem;font-weight:800;color:#34445d}input,select,button{font:inherit}input,select{width:100%;min-height:50px;border:1px solid #cbd5e1;border-radius:11px;background:#fff;color:var(--text);outline:none}input{padding:0 14px}select{padding:0 13px}input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 4px #1456c021}.reset{min-height:50px;padding:0 18px;border:1px solid #cbd5e1;border-radius:11px;background:#f8fafc;font-weight:800;cursor:pointer}.reset:hover{background:#edf2f8}.summary{display:flex;justify-content:space-between;gap:15px;align-items:center;margin:28px 0 16px}.count{margin:0;font-weight:800}.count strong{font-size:1.25rem;color:var(--dark)}.hint{margin:0;color:var(--muted);font-size:.9rem}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:17px;padding-bottom:48px}.card{display:flex;flex-direction:column;min-height:260px;padding:20px;background:#fff;border:1px solid var(--line);border-radius:15px;box-shadow:0 4px 14px #21375a0a;transition:.18s}.card:hover{transform:translateY(-3px);box-shadow:0 12px 28px #21375a17;border-color:#b9c9df}.top{display:flex;justify-content:space-between;gap:10px;margin-bottom:16px}.badge{display:inline-flex;padding:4px 9px;border-radius:99px;font-size:.81rem;font-weight:850}.category{background:var(--soft);color:var(--dark)}.yes{background:#e8f7f1;color:var(--green)}.no{background:#fff0ee;color:var(--red)}.name{margin:0 0 17px;font-size:1.2rem;line-height:1.35}.info{display:grid;gap:10px;margin:0}.row{display:grid;grid-template-columns:72px 1fr;gap:9px}.row dt{font-size:.88rem;color:var(--muted);font-weight:700}.row dd{margin:0;font-size:.93rem;font-weight:750}.row a{color:var(--dark);text-decoration:none}.row a:hover{text-decoration:underline}.id{margin-top:auto;padding-top:17px;color:#8a97aa;font-size:.76rem;letter-spacing:.05em}.empty{display:none;margin-bottom:48px;padding:55px 20px;text-align:center;background:#fff;border:1px dashed #b8c4d4;border-radius:17px}.empty.show{display:block}.empty h2{margin:0 0 6px;font-size:1.18rem}.empty p{margin:0;color:var(--muted)}mark{background:#fff0a8;color:inherit;border-radius:3px}footer{padding:25px 0 30px;background:#eaf0f7;color:#6f7d91;border-top:1px solid #d9e1eb;font-size:.85rem}.foot{display:flex;justify-content:space-between;gap:15px}.foot p{margin:0}@media(max-width:880px){.filters{grid-template-columns:1fr 1fr}.reset{grid-column:1/-1}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.wrap{width:min(100% - 28px,1160px)}.hero .wrap{padding:38px 0 80px}.panel{padding:16px}.filters{grid-template-columns:1fr}.reset{grid-column:auto}.summary{align-items:flex-start;flex-direction:column;gap:3px}.grid{grid-template-columns:1fr;gap:12px}.foot{flex-direction:column;gap:4px}}
+</style>
+</head>
+<body>
+<a class="skip" href="#list">검색 결과로 바로가기</a>
+<header class="hero"><div class="wrap"><p class="eyebrow">정부 안내서비스</p><h1>필요한 정부 안내를<br>빠르게 찾아보세요</h1><p class="lead">서비스명을 검색하거나 안내분야를 선택하면 소관기관, 온라인 안내 여부, 콜센터를 한눈에 확인할 수 있습니다.</p></div></header>
+<main><div class="wrap"><section class="panel" aria-label="안내서비스 검색 및 필터"><div class="filters"><div><label for="q">서비스명 검색</label><input id="q" type="search" placeholder="예: 기초연금, 운전면허, 교육비" autocomplete="off"></div><div><label for="category">안내분야</label><select id="category"><option value="전체">전체 분야</option></select></div><button id="reset" class="reset" type="button">조건 초기화</button></div></section><div class="summary"><p id="count" class="count" aria-live="polite"></p><p class="hint">검색어와 분야 필터를 함께 적용할 수 있습니다.</p></div><section id="list" class="grid" aria-label="정부 안내서비스 검색 결과"></section><section id="empty" class="empty" aria-live="polite"><h2>검색 조건에 맞는 안내서비스가 없습니다.</h2><p>검색어나 안내분야를 다시 확인해 주세요.</p></section></div></main>
+<footer><div class="wrap foot"><p>정부 안내서비스 검색</p><p>제공 데이터: 총 24건</p></div></footer>
+<script>
+'use strict';
+const services=[
+{"서비스ID":"A001","서비스명":"주민등록 발급 안내","안내분야":"민원","소관기관":"국토교통부","온라인안내":"가능","콜센터":"1374"},
+{"서비스ID":"A002","서비스명":"전입신고 안내","안내분야":"민원","소관기관":"보건복지부","온라인안내":"가능","콜센터":"1352"},
+{"서비스ID":"A003","서비스명":"인감증명 안내","안내분야":"민원","소관기관":"국토교통부","온라인안내":"가능","콜센터":"1313"},
+{"서비스ID":"A004","서비스명":"민원접수 안내","안내분야":"민원","소관기관":"교육부","온라인안내":"가능","콜센터":"1341"},
+{"서비스ID":"A005","서비스명":"정부24 이용 안내","안내분야":"민원","소관기관":"국토교통부","온라인안내":"가능","콜센터":"1356"},
+{"서비스ID":"A006","서비스명":"기초연금 안내","안내분야":"복지","소관기관":"행정안전부","온라인안내":"불가","콜센터":"1386"},
+{"서비스ID":"A007","서비스명":"복지급여 안내","안내분야":"복지","소관기관":"고용노동부","온라인안내":"가능","콜센터":"1319"},
+{"서비스ID":"A008","서비스명":"장애인지원 안내","안내분야":"복지","소관기관":"보건복지부","온라인안내":"가능","콜센터":"1337"},
+{"서비스ID":"A009","서비스명":"아동수당 안내","안내분야":"복지","소관기관":"지자체","온라인안내":"가능","콜센터":"1326"},
+{"서비스ID":"A010","서비스명":"지방세 납부 안내","안내분야":"세금","소관기관":"보건복지부","온라인안내":"가능","콜센터":"1357"},
+{"서비스ID":"A011","서비스명":"취득세 안내","안내분야":"세금","소관기관":"국토교통부","온라인안내":"가능","콜센터":"1341"},
+{"서비스ID":"A012","서비스명":"재산세 안내","안내분야":"세금","소관기관":"지자체","온라인안내":"가능","콜센터":"1317"},
+{"서비스ID":"A013","서비스명":"자동차등록 안내","안내분야":"교통","소관기관":"국토교통부","온라인안내":"가능","콜센터":"1399"},
+{"서비스ID":"A014","서비스명":"운전면허 안내","안내분야":"교통","소관기관":"보건복지부","온라인안내":"불가","콜센터":"1357"},
+{"서비스ID":"A015","서비스명":"주정차단속 안내","안내분야":"교통","소관기관":"국토교통부","온라인안내":"가능","콜센터":"1367"},
+{"서비스ID":"A016","서비스명":"재난지원금 안내","안내분야":"재난","소관기관":"행정안전부","온라인안내":"불가","콜센터":"1356"},
+{"서비스ID":"A017","서비스명":"대피소 안내","안내분야":"재난","소관기관":"국세청","온라인안내":"가능","콜센터":"1359"},
+{"서비스ID":"A018","서비스명":"안전신고 안내","안내분야":"재난","소관기관":"국세청","온라인안내":"가능","콜센터":"1357"},
+{"서비스ID":"A019","서비스명":"국민취업지원 안내","안내분야":"일자리","소관기관":"지자체","온라인안내":"가능","콜센터":"1386"},
+{"서비스ID":"A020","서비스명":"구직급여 안내","안내분야":"일자리","소관기관":"국토교통부","온라인안내":"불가","콜센터":"1350"},
+{"서비스ID":"A021","서비스명":"청년일자리 안내","안내분야":"일자리","소관기관":"지자체","온라인안내":"가능","콜센터":"1392"},
+{"서비스ID":"A022","서비스명":"평생교육 안내","안내분야":"교육","소관기관":"국토교통부","온라인안내":"가능","콜센터":"1379"},
+{"서비스ID":"A023","서비스명":"학자금 안내","안내분야":"교육","소관기관":"지자체","온라인안내":"가능","콜센터":"1324"},
+{"서비스ID":"A024","서비스명":"교육비지원 안내","안내분야":"교육","소관기관":"행정안전부","온라인안내":"가능","콜센터":"1368"}
+];
+const q=document.querySelector('#q'),category=document.querySelector('#category'),list=document.querySelector('#list'),count=document.querySelector('#count'),empty=document.querySelector('#empty');
+const escapeHtml=v=>String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+[...new Set(services.map(x=>x.안내분야))].forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;category.appendChild(o)});
+function highlight(text,key){const safe=escapeHtml(text);if(!key)return safe;const e=key.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');return safe.replace(new RegExp(`(${e})`,'gi'),'<mark>$1</mark>')}
+function render(){const key=q.value.trim(),cat=category.value;const rows=services.filter(x=>x.서비스명.toLocaleLowerCase('ko-KR').includes(key.toLocaleLowerCase('ko-KR'))&&(cat==='전체'||x.안내분야===cat));list.innerHTML=rows.map(x=>{const ok=x.온라인안내==='가능';return `<article class="card"><div class="top"><span class="badge category">${escapeHtml(x.안내분야)}</span><span class="badge ${ok?'yes':'no'}">온라인 ${escapeHtml(x.온라인안내)}</span></div><h2 class="name">${highlight(x.서비스명,key)}</h2><dl class="info"><div class="row"><dt>소관기관</dt><dd>${escapeHtml(x.소관기관)}</dd></div><div class="row"><dt>온라인안내</dt><dd>${escapeHtml(x.온라인안내)}</dd></div><div class="row"><dt>콜센터</dt><dd><a href="tel:${escapeHtml(x.콜센터)}">${escapeHtml(x.콜센터)}</a></dd></div></dl><span class="id">SERVICE ID · ${escapeHtml(x.서비스ID)}</span></article>`}).join('');count.innerHTML=`총 ${services.length}건 중 <strong>${rows.length}건</strong> 표시`;list.hidden=rows.length===0;empty.classList.toggle('show',rows.length===0)}
+q.addEventListener('input',render);category.addEventListener('change',render);document.querySelector('#reset').addEventListener('click',()=>{q.value='';category.value='전체';render();q.focus()});render();
+</script>
+</body>
+</html>
